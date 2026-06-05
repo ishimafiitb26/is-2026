@@ -1,65 +1,78 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
+  const quickPanels = [
+    { title: "Latest Briefing", value: "3 New Announcements", hint: "Updated 15 minutes ago" },
+    { title: "Countdown", value: "12 Days to Day 1", hint: "Prep window is still open" },
+    { title: "Today Schedule", value: "Mentor Sync - 19:30", hint: "Join from your group channel" },
+  ];
+
+  const featureLinks = [
+    {
+      href: "/journey-map",
+      title: "Journey Map",
+      description: "Track each OSJUR phase with a clear progress timeline.",
+    },
+    {
+      href: "/handbook",
+      title: "Digital Handbook",
+      description: "Read regulations, essentials, and prep checklist in one place.",
+    },
+    {
+      href: "/reflection-board",
+      title: "Reflection Board",
+      description: "A calm space for short reflections and anonymous support notes.",
+    },
+    {
+      href: "/help-center",
+      title: "Help Center",
+      description: "Frequently asked questions to reduce repetitive panitia chats.",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="space-y-6">
+      <section className="panel reveal p-6 sm:p-8">
+        <p className="status-pill">Operations Feed</p>
+        <h1 className="mt-4 font-heading text-5xl leading-none tracking-wider text-[#f2f1ec] sm:text-6xl">
+          Enter The Maze, Stay On Track.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base text-[#e2ded2] sm:text-lg">
+          One mobile-first command center for announcements, journey guidance, handbook access, and assignment flow.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/portal" className="cta-btn px-5 py-3">
+            Open Portal Access
+          </Link>
+          <Link href="/help-center" className="nav-chip px-5 py-3">
+            Browse Help Center
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        {quickPanels.map((panel) => (
+          <article key={panel.title} className="panel reveal p-4" style={{ animationDelay: "80ms" }}>
+            <p className="text-xs uppercase tracking-[0.08em] text-[#c7c3b8]">{panel.title}</p>
+            <h2 className="mt-1 text-2xl font-semibold text-[#f2f1ec]">{panel.value}</h2>
+            <p className="mt-1 text-sm text-[#d8d3c6]">{panel.hint}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2">
+        {featureLinks.map((feature, index) => (
+          <Link
+            key={feature.href}
+            href={feature.href}
+            className="panel reveal block p-5 transition-transform hover:-translate-y-0.5"
+            style={{ animationDelay: `${120 + index * 70}ms` }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <h2 className="font-heading text-3xl tracking-wider text-[#f2f1ec]">{feature.title}</h2>
+            <p className="mt-2 text-[#ddd8cb]">{feature.description}</p>
+          </Link>
+        ))}
+      </section>
     </div>
   );
 }
