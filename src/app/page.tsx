@@ -7,11 +7,11 @@ export default function Home() {
     { title: "Today Schedule", value: "Mentor Sync - 19:30", hint: "Join from your group channel" },
   ];
 
-  const featureLinks = [
+    const featureLinks = [
     {
       href: "/journey-map",
       title: "Journey Map",
-      description: "Track each OSJUR phase with a clear progress timeline.",
+      description: "Track each phase with a clear progress timeline.",
     },
     {
       href: "/handbook",

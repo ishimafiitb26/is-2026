@@ -1,6 +1,6 @@
-# OSJUR IS 2026 Website
+# INTELLEKTUELLE SCHULE 2026 Website
 
-Portal terpusat untuk kebutuhan OSJUR IS 2026: informasi kegiatan, panduan, alur perjalanan acara, dan sistem tugas maba-panitia.
+Portal terpusat untuk kebutuhan INTELLEKTUELLE SCHULE 2026: informasi kegiatan, panduan, alur perjalanan acara, dan sistem tugas maba-panitia.
 
 ## Tech Stack
 
