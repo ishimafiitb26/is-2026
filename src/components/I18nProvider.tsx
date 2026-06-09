@@ -13,12 +13,12 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window === "undefined") return "id";
+    if (typeof window === "undefined") return "en";
     const stored = localStorage.getItem("is2026-language");
     if (stored && languages.includes(stored as Language)) {
       return stored as Language;
     }
-    return "id";
+    return "en";
   });
 
   const setLanguage = (nextLanguage: Language) => {
