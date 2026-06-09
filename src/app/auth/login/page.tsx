@@ -45,7 +45,7 @@ export default function LoginPage() {
             INTELLEKTUELLE SCHULE 2026
           </h1>
           <p className="text-[#D7DCD5] mb-8 text-sm">
-            Project Hail Mary Operations
+            Welcome! Please log in with your NIM and password to access the dashboard.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -84,7 +84,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 mt-4 bg-[#D5C757] hover:bg-[#e8da6f] disabled:bg-[#D5C757]/50 text-[#0F282F] font-bold rounded-xl transition shadow-[0_0_15px_rgba(213,199,87,0.2)]"
             >
-              {loading ? "Authenticating..." : "Akses Portal"}
+              {loading ? "Authenticating..." : "Log In"}
             </button>
           </form>
 
