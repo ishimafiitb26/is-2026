@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "../../../components/AuthProvider";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [nim, setNim] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,50 +18,62 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Trik dummy domain: Gabungkan NIM dengan domain kampus di belakang layar
+      const email = `${nim}@mahasiswa.itb.ac.id`;
       await login(email, password);
       router.push("/");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login gagal. Periksa email dan password.");
+      setError(err instanceof Error ? err.message : "Akses ditolak. Periksa kembali NIM dan Password.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1b1f1d] px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-[#2d1b16]/50 border border-[#7b5a48]/25 rounded-lg p-8">
-          <h1 className="font-heading text-3xl text-[#f7f0e8] mb-2">
+    <div className="min-h-screen flex items-center justify-center bg-[#0F282F] px-4 relative overflow-hidden">
+      
+      {/* Efek kosmik (Cahaya blur) di background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+         <div className="absolute top-[-10%] left-[-10%] h-96 w-96 rounded-full bg-[#084D58]/40 blur-[100px]" />
+         <div className="absolute bottom-[-10%] right-[-10%] h-96 w-96 rounded-full bg-[#CE4A2D]/15 blur-[100px]" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Panel Login */}
+        <div className="bg-[#084D58]/30 backdrop-blur-md border border-[#D7DCD5]/10 rounded-2xl p-8 shadow-2xl">
+          <h1 className="font-heading text-4xl text-[#F2EDEC] mb-2 tracking-wider">
             INTELLEKTUELLE SCHULE 2026
           </h1>
-          <p className="text-[#c8b0a0] mb-8">Maze Runner Operations Portal</p>
+          <p className="text-[#D7DCD5] mb-8 text-sm">
+            Project Hail Mary Operations
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-900/20 border border-red-600/50 text-red-200 px-4 py-3 rounded">
+              <div className="bg-[#CE4A2D]/20 border border-[#CE4A2D]/50 text-[#F2EDEC] px-4 py-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">Email</label>
+              <label className="block text-sm text-[#D7DCD5] mb-2 font-medium">NIM</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1b1f1d] border border-[#7b5a48]/25 rounded text-[#f7f0e8] placeholder-[#7b5a48]"
-                placeholder="admin@example.com"
+                type="text"
+                value={nim}
+                onChange={(e) => setNim(e.target.value)}
+                className="w-full px-4 py-3 bg-[#0F282F]/80 border border-[#D7DCD5]/20 rounded-xl text-[#F2EDEC] placeholder-[#D7DCD5]/40 focus:outline-none focus:border-[#D5C757] transition"
+                placeholder="Masukkan NIM..."
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">Password</label>
+              <label className="block text-sm text-[#D7DCD5] mb-2 font-medium">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 bg-[#1b1f1d] border border-[#7b5a48]/25 rounded text-[#f7f0e8] placeholder-[#7b5a48]"
+                className="w-full px-4 py-3 bg-[#0F282F]/80 border border-[#D7DCD5]/20 rounded-xl text-[#F2EDEC] placeholder-[#D7DCD5]/40 focus:outline-none focus:border-[#D5C757] transition"
                 placeholder="••••••••"
                 required
               />
@@ -70,13 +82,13 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 bg-[#c18f63] hover:bg-[#d49d70] disabled:bg-[#7b5a48] text-[#1b1f1d] font-semibold rounded transition"
+              className="w-full py-3 mt-4 bg-[#D5C757] hover:bg-[#e8da6f] disabled:bg-[#D5C757]/50 text-[#0F282F] font-bold rounded-xl transition shadow-[0_0_15px_rgba(213,199,87,0.2)]"
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Authenticating..." : "Akses Portal"}
             </button>
           </form>
 
-          <p className="text-center text-[#c8b0a0] text-sm mt-6">
+          <p className="text-center text-[#D7DCD5]/70 text-xs mt-6">
             Use your registered email and password
           </p>
         </div>
