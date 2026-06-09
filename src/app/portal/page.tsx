@@ -1,112 +1,199 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-
-type Owner = "Lead" | "Frontend Staff" | "Data Staff";
-type Status = "Not Started" | "In Progress" | "Done";
-
-type TeamTask = {
-  id: string;
-  owner: Owner;
-  title: string;
-  due: string;
-  status: Status;
-};
-
-const baseTasks: TeamTask[] = [
-  { id: "T-01", owner: "Lead", title: "Auth flow and route guard", due: "Day 4", status: "In Progress" },
-  { id: "T-02", owner: "Lead", title: "Firebase and Cloudinary integration", due: "Day 3", status: "Done" },
-  { id: "T-03", owner: "Frontend Staff", title: "Slice Journey Map and FAQ UI", due: "Day 5", status: "In Progress" },
-  { id: "T-04", owner: "Frontend Staff", title: "Empty and loading states polish", due: "Day 7", status: "Not Started" },
-  { id: "T-05", owner: "Data Staff", title: "Firestore schema and data dictionary", due: "Day 4", status: "In Progress" },
-  { id: "T-06", owner: "Data Staff", title: "Python script for bulk account injection", due: "Day 6", status: "Not Started" },
-];
+import { useState, useEffect } from "react";
+import { setDoc, doc } from "firebase/firestore";
+import { updatePassword } from "firebase/auth";
+import { useI18n } from "../../components/I18nProvider";
+import { useAuth } from "../../components/AuthProvider";
+import { db } from "../../lib/firebase";
+import { getCurrentTimestamp } from "../../lib/engagement";
 
 export default function PortalPage() {
-  const [activeOwner, setActiveOwner] = useState<Owner | "All">("All");
+  const { t } = useI18n();
+  const { role, loading, user } = useAuth();
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    nickname: "",
+    biodata: "",
+    newPassword: "",
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [message, setMessage] = useState("");
 
-  const visibleTasks = useMemo(() => {
-    if (activeOwner === "All") return baseTasks;
-    return baseTasks.filter((task) => task.owner === activeOwner);
-  }, [activeOwner]);
+  // Protect: only admin can access this page
+  useEffect(() => {
+    if (!loading && role !== "admin") {
+      router.push("/");
+    }
+  }, [role, loading, router]);
 
-  const statusCount = useMemo(() => {
-    return {
-      done: visibleTasks.filter((task) => task.status === "Done").length,
-      progress: visibleTasks.filter((task) => task.status === "In Progress").length,
-      todo: visibleTasks.filter((task) => task.status === "Not Started").length,
-    };
-  }, [visibleTasks]);
+  if (loading) {
+    return <div className="text-center py-8 text-[#c8b0a0]">{t("Loading...")}</div>;
+  }
+
+  if (role !== "admin") {
+    return (
+      <div className="bg-red-900/20 border border-red-600/50 rounded p-4 text-red-200">
+        <p>{t("Unauthorized")}</p>
+      </div>
+    );
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    setMessage("");
+    
+    try {
+      if (!user?.uid) {
+        setMessage(t("Failed to update profile."));
+        setIsUpdating(false);
+        return;
+      }
+
+      // Update password if provided
+      if (formData.newPassword.trim()) {
+        if (user) {
+          await updatePassword(user, formData.newPassword);
+        }
+      }
+
+      // Save profile data to Firestore users collection
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          email: user.email,
+          name: formData.name || "",
+          nickname: formData.nickname || "",
+          biodata: formData.biodata || "",
+          updatedAt: getCurrentTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setMessage(t("Profile updated successfully."));
+      setFormData({
+        ...formData,
+        newPassword: "",
+      });
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      setMessage(t("Failed to update profile."));
+      console.error(error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <section className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-      <article className="panel p-6 sm:p-7">
-        <p className="status-pill">Student Access</p>
-        <h1 className="mt-3 font-heading text-4xl tracking-wider text-[#f2f1ec]">Student Dashboard</h1>
-        <p className="mt-3 text-[#ddd8cb]">
-          Check active assignments, download task files, and submit results before deadline.
-        </p>
-        <Link href="/" className="cta-btn mt-5 inline-flex px-4 py-2">
-          Continue as Student
-        </Link>
-      </article>
+        <article className="panel p-6 sm:p-7">
+          <p className="status-pill">{t("Committee Access")}</p>
+          <h2 className="mt-3 font-heading text-4xl tracking-wider text-[#f2f1ec]">{t("Admin Dashboard")}</h2>
+          <p className="mt-3 text-[#ddd8cb]">
+            {t("Publish tasks, set deadlines, monitor completion status, and review attendance confirmations.")}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href="/admin" className="cta-btn inline-flex px-4 py-2">
+              {t("Admin")}
+            </Link>
+          </div>
+        </article>
 
-      <article className="panel p-6 sm:p-7">
-        <p className="status-pill">Committee Access</p>
-        <h2 className="mt-3 font-heading text-4xl tracking-wider text-[#f2f1ec]">Admin Dashboard</h2>
-        <p className="mt-3 text-[#ddd8cb]">
-          Publish tasks, set deadlines, and monitor completion status for every participant group.
-        </p>
-        <Link href="/" className="cta-btn mt-5 inline-flex px-4 py-2">
-          Continue as Committee
-        </Link>
-      </article>
-      </div>
-
-      <article className="panel p-6">
-        <p className="status-pill">Team Operations</p>
-        <h2 className="mt-3 font-heading text-4xl tracking-wider text-[#f2f1ec]">Webdev Task Board</h2>
-        <p className="mt-2 text-[#ddd8cb]">
-          Live division of work so everyone contributes without being rushed.
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(["All", "Lead", "Frontend Staff", "Data Staff"] as const).map((owner) => (
-            <button
-              key={owner}
-              type="button"
-              onClick={() => setActiveOwner(owner)}
-              className={`rounded-full border px-3 py-1 text-sm transition ${
-                activeOwner === owner
-                  ? "border-[#d8a75b] bg-[#d8a75b]/20 text-[#f2f1ec]"
-                  : "border-white/25 bg-white/5 text-[#d8d3c6]"
-              }`}
-            >
-              {owner}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <div className="rounded-lg border border-white/20 bg-white/5 p-3 text-[#e8e3d8]">Done: {statusCount.done}</div>
-          <div className="rounded-lg border border-white/20 bg-white/5 p-3 text-[#e8e3d8]">In Progress: {statusCount.progress}</div>
-          <div className="rounded-lg border border-white/20 bg-white/5 p-3 text-[#e8e3d8]">Not Started: {statusCount.todo}</div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {visibleTasks.map((task) => (
-            <div key={task.id} className="rounded-lg border border-white/15 bg-black/15 p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#c7c3b8]">
-                {task.id} • {task.owner} • Due {task.due}
-              </p>
-              <h3 className="mt-1 text-lg text-[#f2f1ec]">{task.title}</h3>
-              <p className="mt-1 text-sm text-[#d8a75b]">Status: {task.status}</p>
+        <article className="panel p-6 sm:p-7">
+          <p className="status-pill">{t("Account Settings")}</p>
+          <h2 className="mt-3 font-heading text-2xl tracking-wider text-[#f2f1ec]">{t("Profile Settings")}</h2>
+          <p className="mt-3 text-[#ddd8cb]">
+            {t("Update your account information and preferences.")}
+          </p>
+          
+          <form onSubmit={handleUpdateProfile} className="mt-5 space-y-4">
+            <div>
+              <label className="block text-sm text-[#c8b0a0] mb-2">{t("Email")}</label>
+              <input
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] disabled:opacity-50"
+              />
             </div>
-          ))}
-        </div>
-      </article>
+
+            <div>
+              <label className="block text-sm text-[#c8b0a0] mb-2">{t("Full Name")}</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Your full name"
+                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[#c8b0a0] mb-2">Nickname</label>
+              <input
+                type="text"
+                name="nickname"
+                value={formData.nickname}
+                onChange={handleInputChange}
+                placeholder="Your nickname"
+                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[#c8b0a0] mb-2">Biodata</label>
+              <textarea
+                name="biodata"
+                value={formData.biodata}
+                onChange={handleInputChange}
+                placeholder="Tell us about yourself"
+                rows={3}
+                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-[#c8b0a0] mb-2">{t("New Password")}</label>
+              <input
+                type="password"
+                name="newPassword"
+                value={formData.newPassword}
+                onChange={handleInputChange}
+                placeholder="Leave blank to keep current password"
+                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
+              />
+            </div>
+
+            {message && (
+              <p className={`text-sm ${message.includes("successfully") ? "text-green-400" : "text-red-400"}`}>
+                {message}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="w-full cta-btn px-4 py-2 disabled:opacity-50"
+            >
+              {isUpdating ? t("Updating...") : t("Save Changes")}
+            </button>
+          </form>
+        </article>
+      </div>
     </section>
   );
 }

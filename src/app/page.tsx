@@ -1,32 +1,51 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "../components/I18nProvider";
 
 export default function Home() {
+  const { t } = useI18n();
   const quickPanels = [
-    { title: "Latest Briefing", value: "3 New Announcements", hint: "Updated 15 minutes ago" },
-    { title: "Countdown", value: "12 Days to Day 1", hint: "Prep window is still open" },
-    { title: "Today Schedule", value: "Mentor Sync - 19:30", hint: "Join from your group channel" },
+    { title: t("Latest Briefing"), value: "3 New Announcements", hint: "Updated 15 minutes ago" },
+    { title: t("Countdown"), value: "12 Days to Day 1", hint: "Prep window is still open" },
+    { title: t("Today Schedule"), value: "Mentor Sync - 19:30", hint: "Join from your group channel" },
   ];
 
-    const featureLinks = [
+  const featureLinks = [
     {
       href: "/journey-map",
-      title: "Journey Map",
-      description: "Track each phase with a clear progress timeline.",
+      title: t("Journey Map"),
+      description: t("Track each phase with a clear progress timeline."),
+    },
+    {
+      href: "/tasks",
+      title: t("Tasks Center"),
+      description: t("See task info, download briefs, and upload submissions in one flow."),
+    },
+    {
+      href: "/attendance",
+      title: t("Attendance"),
+      description: t("Track presence for each session with a simple status view."),
+    },
+    {
+      href: "/h1-confirmation",
+      title: t("H-1 Confirmation"),
+      description: t("Confirm attendance the day before the event with a quick form."),
     },
     {
       href: "/handbook",
-      title: "Digital Handbook",
-      description: "Read regulations, essentials, and prep checklist in one place.",
+      title: t("Digital Handbook"),
+      description: t("Read regulations, essentials, and prep checklist in one place."),
     },
     {
       href: "/reflection-board",
-      title: "Reflection Board",
-      description: "A calm space for short reflections and anonymous support notes.",
+      title: t("Reflection Board"),
+      description: t("A calm space for short reflections and anonymous support notes."),
     },
     {
       href: "/help-center",
-      title: "Help Center",
-      description: "Frequently asked questions to reduce repetitive panitia chats.",
+      title: t("Help Center"),
+      description: t("Frequently asked questions to reduce repetitive panitia chats."),
     },
   ];
 
@@ -35,17 +54,17 @@ export default function Home() {
       <section className="panel reveal p-6 sm:p-8">
         <p className="status-pill">Operations Feed</p>
         <h1 className="mt-4 font-heading text-5xl leading-none tracking-wider text-[#f2f1ec] sm:text-6xl">
-          Enter The Maze, Stay On Track.
+          {t("Enter The Maze, Stay On Track.")}
         </h1>
         <p className="mt-4 max-w-2xl text-base text-[#e2ded2] sm:text-lg">
-          One mobile-first command center for announcements, journey guidance, handbook access, and assignment flow.
+          {t("One mobile-first command center for announcements, journey guidance, handbook access, and assignment flow.")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/portal" className="cta-btn px-5 py-3">
-            Open Portal Access
+            {t("Open Portal Access")}
           </Link>
           <Link href="/help-center" className="nav-chip px-5 py-3">
-            Browse Help Center
+            {t("Browse Help Center")}
           </Link>
         </div>
       </section>

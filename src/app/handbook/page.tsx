@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useI18n } from "../../components/I18nProvider";
 
 const handbookSections = [
   "Read rules and attendance policy",
@@ -11,6 +12,7 @@ const handbookSections = [
 ];
 
 export default function HandbookPage() {
+  const { t } = useI18n();
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
   const progress = useMemo(() => {
@@ -25,16 +27,16 @@ export default function HandbookPage() {
   return (
     <section className="space-y-4">
       <header className="panel p-6 sm:p-8">
-        <p className="status-pill">Digital Handbook</p>
-        <h1 className="mt-3 font-heading text-5xl tracking-wider text-[#f2f1ec]">Guidelines, Simplified</h1>
+        <p className="status-pill">{t("Digital Handbook")}</p>
+        <h1 className="mt-3 font-heading text-5xl tracking-wider text-[#f2f1ec]">{t("Guidelines, Simplified")}</h1>
         <p className="mt-3 max-w-2xl text-[#e2ded2]">
-          A calm reading mode for all critical information so participants do not need to scan long PDF files.
+          {t("A calm reading mode for all critical information so participants do not need to scan long PDF files.")}
         </p>
-        <p className="mt-4 text-sm text-[#d8a75b]">Checklist progress: {progress}% completed</p>
+        <p className="mt-4 text-sm text-[#d8a75b]">{t("Checklist progress")}: {progress}% {t("completed")}</p>
       </header>
 
       <article className="panel p-5">
-        <h2 className="font-heading text-3xl tracking-wider text-[#f2f1ec]">Core Sections</h2>
+        <h2 className="font-heading text-3xl tracking-wider text-[#f2f1ec]">{t("Core Sections")}</h2>
         <ul className="mt-3 space-y-2 text-[#ddd8cb]">
           {handbookSections.map((item) => (
             <li key={item}>
@@ -54,7 +56,7 @@ export default function HandbookPage() {
                 >
                   {checkedItems[item] ? "✓" : ""}
                 </span>
-                <span>{item}</span>
+                <span>{t(item)}</span>
               </button>
             </li>
           ))}
