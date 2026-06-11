@@ -18,12 +18,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Trik dummy domain: Gabungkan NIM dengan domain kampus di belakang layar
-      const email = `${nim}@mahasiswa.itb.ac.id`;
-      await login(email, password);
+      // LOGIC PINTAR: Cek apakah yang diketik mengandung karakter '@'
+      // - Kalau ADA '@', berarti kamu (Admin) lagi login pakai email gmail asli.
+      // - Kalau NGGAK ADA, berarti itu Maba yang lagi login pakai NIM (baru kita tembak pake dummy domain).
+      const finalEmail = nim.includes("@") 
+        ? nim.trim() 
+        : `${nim.trim()}@mahasiswa.itb.ac.id`;
+
+      await login(finalEmail, password);
       router.push("/");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Akses ditolak. Periksa kembali NIM dan Password.");
+      setError(err instanceof Error ? err.message : "Akses ditolak. Periksa kembali NIM/Email dan Password.");
     } finally {
       setLoading(false);
     }

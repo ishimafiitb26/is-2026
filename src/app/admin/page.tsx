@@ -355,7 +355,7 @@ export default function AdminPage() {
               onChange={(event) => setTargetInput(event.target.value)}
               className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-[#f7f0e8] outline-none focus:border-[#c18f63]"
             />
-            <button type="button" onClick={saveTarget} className="cta-btn px-4 py-3">{t("Save target")}</button>
+            <button type="button" onClick={saveTarget} className="cta-btn px-4 py-3">{t("Save")}</button>
           </div>
         </article>
 
