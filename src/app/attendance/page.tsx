@@ -1,111 +1,122 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { onSnapshot, setDoc } from "firebase/firestore";
+import { onSnapshot, collection, doc, setDoc } from "firebase/firestore";
 import { useAuth } from "@/components/AuthProvider";
+import { useI18n } from "@/components/I18nProvider";
+import { uploadToCloudinary } from "@/lib/cloudinary";
+import { db } from "@/lib/firebase";
 import {
-  attendanceCollectionRef,
-  attendanceDocRef,
   eventMetaRef,
   getCurrentTimestamp,
-  h1CollectionRef,
-  normalizeName,
   type AttendanceRecord,
   type H1ConfirmationRecord,
-  type EventMeta,
-} from "../../lib/engagement";
-import { uploadToCloudinary } from "../../lib/cloudinary";
-import { attendanceStatuses, countByValue, expectedRoster } from "../../lib/checkins";
-import { useI18n } from "../../components/I18nProvider";
+} from "@/lib/engagement";
 
-const proofHints: Record<(typeof attendanceStatuses)[number], string> = {
-  hadir: "Upload bukti hadir di tempat, misalnya foto saat check-in atau tanda hadir dari panitia.",
-  menyusul: "Upload bukti saat menyusul kegiatan atau screenshot konfirmasi kedatangan.",
-  meninggalkan: "Upload bukti izin meninggalkan ke panitia.",
-  "tidak hadir": "Upload bukti izin ke panitia, surat sakit, atau foto pendukung bila diperlukan.",
-};
-
-const statusLabels: Record<(typeof attendanceStatuses)[number], string> = {
-  hadir: "Hadir",
-  menyusul: "Menyusul",
-  meninggalkan: "Meninggalkan",
-  "tidak hadir": "Tidak Hadir",
-};
-
-const defaultMeta: EventMeta = { expectedParticipants: expectedRoster.length };
+const osjurDays = [
+  { value: "day_1", label: "Day 1 - Opening & Synchronizations" },
+  { value: "day_2", label: "Day 2 - Core Operations Session" },
+  { value: "day_3", label: "Day 3 - Material Exploration" },
+  { value: "day_4", label: "Day 4 - Final Presentation & Closing" },
+];
 
 export default function AttendancePage() {
   const { t } = useI18n();
-  const { user } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [status, setStatus] = useState<(typeof attendanceStatuses)[number]>("hadir");
-  const [evidenceText, setEvidenceText] = useState("");
+  const { user, role } = useAuth();
+  const [activeTab, setActiveTab] = useState<"dday" | "h1">("dday");
+  
+  // State pelacakan hari pelaksanaan aktif
+  const [selectedDay, setSelectedDay] = useState<string>("day_1");
+
+  // State Form inputs
+  const [fullName, setFullName] = useState<string>("");
+  const [statusDDay, setStatusDDay] = useState<string>("hadir");
+  const [statusH1, setStatusH1] = useState<string>("hadir tepat waktu");
+  const [evidenceText, setEvidenceText] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [reasonH1, setReasonH1] = useState<string>("");
+
+  // Storage states harian
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [h1Records, setH1Records] = useState<H1ConfirmationRecord[]>([]);
-  const [expectedParticipants, setExpectedParticipants] = useState(defaultMeta.expectedParticipants ?? 0);
-  const [saveMessage, setSaveMessage] = useState("");
+  const [expectedParticipants, setExpectedParticipants] = useState<number>(0);
+  const [saveMessage, setSaveMessage] = useState<string>( "");
 
+  // Otomatis mendeteksi NIM maba dari awalan email akun auth mereka
+  const studentNIM = user?.email ? user.email.split("@")[0] : "";
+
+  // Efek Sinkronisasi Dynamic Collection: Otomatis subscribe ulang tiap dropdown "Day" diganti
   useEffect(() => {
-    // Only subscribe to Firestore when user is authenticated
     if (!user) return;
 
-    const onError = (error: Error) => {
-      if (error.message.includes("permission")) {
-        console.debug("Firestore permission check:", error.message);
-      } else {
-        console.error("Firestore error:", error);
-      }
+    const silentErrorHandler = (err: Error) => {
+      console.debug("Bypassed background collection intersection:", err.message);
     };
 
-    const unsubscribeAttendance = onSnapshot(attendanceCollectionRef, (snapshot) => {
-      setRecords(snapshot.docs.map((document) => document.data() as AttendanceRecord));
-    }, onError);
+    // KOREKSI 1: Membaca data langsung dari koleksi spesifik hari yang dipilih (e.g. attendance_day_1)
+    const unsubscribeAttendance = onSnapshot(
+      collection(db, `attendance_${selectedDay}`), 
+      (snapshot) => {
+        setRecords(snapshot.docs.map((d) => d.data() as AttendanceRecord));
+      }, 
+      silentErrorHandler
+    );
 
-    const unsubscribeH1 = onSnapshot(h1CollectionRef, (snapshot) => {
-      setH1Records(snapshot.docs.map((document) => document.data() as H1ConfirmationRecord));
-    }, onError);
+    const unsubscribeH1 = onSnapshot(
+      collection(db, `h1_confirmations_${selectedDay}`), 
+      (snapshot) => {
+        setH1Records(snapshot.docs.map((d) => d.data() as H1ConfirmationRecord));
+      }, 
+      silentErrorHandler
+    );
 
     const unsubscribeMeta = onSnapshot(eventMetaRef, (document) => {
-      const meta = document.data() as EventMeta | undefined;
-      const nextExpected = meta?.expectedParticipants ?? defaultMeta.expectedParticipants ?? 0;
-      setExpectedParticipants(nextExpected);
-    }, onError);
+      if (document.exists()) {
+        setExpectedParticipants(document.data().expectedParticipants || 0);
+      }
+    }, silentErrorHandler);
 
     return () => {
       unsubscribeAttendance();
       unsubscribeH1();
       unsubscribeMeta();
     };
-  }, [user]);
+  }, [user, selectedDay]); // selectedDay masuk ke dependency array agar memicu re-subscribe
 
-  const h1NameSet = useMemo(() => new Set(h1Records.map((record) => normalizeName(record.fullName))), [h1Records]);
+  // Karena data sudah terisolasi per koleksi harian, kalkulasi metrik bisa langsung dihitung tanpa filter manual
+  const filteredDDayMetrics = useMemo(() => {
+    return {
+      hadir: records.filter((r) => r.status === "hadir").length,
+      menyusul: records.filter((r) => r.status === "menyusul").length,
+      meninggalkan: records.filter((r) => r.status === "meninggalkan").length,
+      tidakHadir: records.filter((r) => r.status === "tidak hadir").length,
+    };
+  }, [records]);
 
-  const attendanceCounts = useMemo(() => countByValue(records.map((record) => ({ value: record.status })), attendanceStatuses), [records]);
+  const filteredH1Metrics = useMemo(() => {
+    return {
+      tepatWaktu: h1Records.filter((r) => r.status === "hadir tepat waktu").length,
+      menyusul: h1Records.filter((r) => r.status === "hadir menyusul").length,
+      izin: h1Records.filter((r) => r.status === "izin meninggalkan").length,
+      tidakHadir: h1Records.filter((r) => r.status === "tidak hadir").length,
+    };
+  }, [h1Records]);
 
-  const withoutH1ConfirmationCount = useMemo(
-    () => records.filter((record) => !h1NameSet.has(normalizeName(record.fullName))).length,
-    [records, h1NameSet],
-  );
+  const handleDDaySubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!fullName.trim()) return;
 
-  const recentRecords = useMemo(
-    () =>
-      [...records].sort((left, right) => (right.updatedAt?.toMillis?.() ?? 0) - (left.updatedAt?.toMillis?.() ?? 0)).slice(0, 4),
-    [records],
-  );
+    // Proteksi validasi NIM akun
+    if (!studentNIM || studentNIM === "UNKNOWN") {
+      setSaveMessage("Gagal mendeteksi identitas. Silakan login kembali.");
+      return;
+    }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmedName = fullName.trim();
-    const trimmedEvidence = evidenceText.trim();
-
-    if (!trimmedName) return;
-
-    setSaveMessage("Saving attendance...");
+    setSaveMessage("Syncing telemetry data into Firebase...");
 
     try {
-      let evidenceUrl: string | undefined;
-      let evidencePublicId: string | undefined;
+      let evidenceUrl = "";
+      let evidencePublicId = "";
 
       if (evidenceFile) {
         const upload = await uploadToCloudinary(evidenceFile);
@@ -113,158 +124,197 @@ export default function AttendancePage() {
         evidencePublicId = upload.public_id;
       }
 
-      await setDoc(attendanceDocRef(trimmedName), {
-        fullName: trimmedName,
-        status,
-        evidenceText: trimmedEvidence || "-",
+      // KOREKSI 1 & 2: Menyimpan ke koleksi hari dinamis, dengan nama Dokumen berupa NIM asli maba
+      await setDoc(doc(db, `attendance_${selectedDay}`, studentNIM), {
+        fullName: fullName.trim(),
+        nim: studentNIM,
+        day: selectedDay,
+        status: statusDDay,
+        evidenceText: evidenceText.trim() || "-",
         evidenceUrl,
         evidencePublicId,
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
 
-      setSaveMessage("Attendance saved to Firebase.");
+      setSaveMessage(`Presensi D-Day untuk ${osjurDays.find(d => d.value === selectedDay)?.label} berhasil dikunci.`);
       setFullName("");
-      setStatus("hadir");
       setEvidenceText("");
       setEvidenceFile(null);
-    } catch (error) {
-      setSaveMessage(error instanceof Error ? error.message : "Failed to save attendance.");
+    } catch (err) {
+      // Menampilkan pesan eror asli dari sistem untuk mempermudah pelacakan
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      setSaveMessage(`Transmission sequence failure: ${errMsg}`);
+    }
+  };
+
+  const handleH1Submit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!fullName.trim()) return;
+
+    if (!studentNIM || studentNIM === "UNKNOWN") {
+      setSaveMessage("Gagal mendeteksi identitas. Silakan login kembali.");
+      return;
+    }
+
+    setSaveMessage("Piping confirmation token...");
+
+    try {
+      // KOREKSI 1 & 2: Menyimpan ke koleksi hari dinamis, dengan nama Dokumen berupa NIM asli maba
+      await setDoc(doc(db, `h1_confirmations_${selectedDay}`, studentNIM), {
+        fullName: fullName.trim(),
+        nim: studentNIM,
+        day: selectedDay,
+        status: statusH1,
+        reason: statusH1 === "hadir tepat waktu" ? "-" : reasonH1.trim() || "-",
+        createdAt: getCurrentTimestamp(),
+        updatedAt: getCurrentTimestamp(),
+      });
+
+      setSaveMessage(`Konfirmasi H-1 untuk ${osjurDays.find(d => d.value === selectedDay)?.label} berhasil dikunci.`);
+      setFullName("");
+      setReasonH1("");
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Unknown error";
+      setSaveMessage(`Transaction sequence aborted: ${errMsg}`);
     }
   };
 
   return (
-    <section className="space-y-4">
-      <header className="panel p-5 sm:p-6 lg:p-8">
-        <p className="status-pill">{t("Attendance")}</p>
-        <h1 className="mt-3 font-heading text-4xl leading-tight tracking-wider text-[#f7f0e8] sm:text-5xl">
-          {t("Presence Check & Evidence Upload")}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#ddd0c2] sm:text-base">
-          {t("Submit your presence status, attach evidence, and let the committee track attendance live from Firebase.")}
-        </p>
+    <section className="space-y-6">
+      <header className="panel p-6">
+        <h1 className="font-heading text-4xl text-[#F2EDEC] tracking-wider">{t("Operations Presence Hub")}</h1>
+        
+        <div className="mt-4 max-w-md">
+          <label className="block text-xs uppercase tracking-wider text-[#D5C757] mb-2 font-semibold">
+            Choose D-Day:
+          </label>
+          <select
+            value={selectedDay}
+            onChange={(e) => { setSelectedDay(e.target.value); setSaveMessage(""); }}
+            className="w-full rounded-xl border border-[#084D58]/40 bg-[#0F282F] px-4 py-3 text-sm text-[#F2EDEC] font-medium outline-none focus:border-[#D5C757] transition shadow-md"
+          >
+            {osjurDays.map((day) => (
+              <option key={day.value} value={day.value} className="bg-[#0F282F] text-[#F2EDEC]">
+                {day.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-6 flex border-b border-[#084D58]/30 gap-2">
+          <button
+            type="button"
+            onClick={() => { setActiveTab("dday"); setSaveMessage(""); }}
+            className={`px-4 py-2 text-sm font-bold border-b-2 transition ${activeTab === "dday" ? "border-b-[#D5C757] text-[#D5C757]" : "border-transparent text-[#aaa391]"}`}
+          >
+            🚀 D-Day Attendance
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("h1"); setSaveMessage(""); }}
+            className={`px-4 py-2 text-sm font-bold border-b-2 transition ${activeTab === "h1" ? "border-b-[#D5C757] text-[#D5C757]" : "border-transparent text-[#aaa391]"}`}
+          >
+            📅 H-1 Confirmation
+          </button>
+        </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="panel p-4 text-[#f7f0e8]">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{t("Hadir")}</p>
-          <p className="mt-2 text-3xl font-semibold">{attendanceCounts.hadir}</p>
-        </div>
-        <div className="panel p-4 text-[#f7f0e8]">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{t("Menyusul")}</p>
-          <p className="mt-2 text-3xl font-semibold">{attendanceCounts.menyusul}</p>
-        </div>
-        <div className="panel p-4 text-[#f7f0e8]">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{t("Meninggalkan")}</p>
-          <p className="mt-2 text-3xl font-semibold">{attendanceCounts.meninggalkan}</p>
-        </div>
-        <div className="panel p-4 text-[#f7f0e8]">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{t("Tidak Hadir")}</p>
-          <p className="mt-2 text-3xl font-semibold">{attendanceCounts["tidak hadir"]}</p>
-        </div>
-        <div className="panel p-4 text-[#f7f0e8]">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{t("No H-1 Confirm")}</p>
-          <p className="mt-2 text-3xl font-semibold">{withoutH1ConfirmationCount}</p>
-        </div>
-        <div className="panel p-4 text-[#f7f0e8]">
-          <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{t("Expected")}</p>
-          <p className="mt-2 text-3xl font-semibold">{expectedParticipants || "-"}</p>
-        </div>
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <article className="panel p-5 sm:p-6">
-          <h2 className="font-heading text-3xl tracking-wider text-[#f7f0e8]">{t("Attendance Form")}</h2>
-          <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-            <label className="block space-y-1">
-              <span className="text-sm text-[#d7bfaf]">{t("Full Name")}</span>
-              <input
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-[#f7f0e8] outline-none placeholder:text-[#ac9180] focus:border-[#c18f63]"
-                placeholder={t("Full Name")}
-              />
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-sm text-[#d7bfaf]">{t("Attendance Status")}</span>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value as (typeof attendanceStatuses)[number])}
-                className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-[#f7f0e8] outline-none focus:border-[#c18f63]"
-              >
-                {attendanceStatuses.map((option) => (
-                  <option key={option} value={option} className="bg-[#2d1b16] text-[#f7f0e8]">
-                    {statusLabels[option]}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-[#e6d7cb]">
-              <p className="font-semibold text-[#f7f0e8]">{t("Evidence guidance")}</p>
-              <p className="mt-1">{proofHints[status]}</p>
-            </div>
-
-            <label className="block space-y-1">
-              <span className="text-sm text-[#d7bfaf]">{t("Evidence / Note")}</span>
-              <textarea
-                value={evidenceText}
-                onChange={(event) => setEvidenceText(event.target.value)}
-                rows={4}
-                placeholder={t("Describe the evidence or the reason here...")}
-                className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-[#f7f0e8] outline-none placeholder:text-[#ac9180] focus:border-[#c18f63]"
-              />
-            </label>
-
-            <label className="block space-y-1">
-              <span className="text-sm text-[#d7bfaf]">{t("Upload Evidence File")}</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
-                className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-3 text-[#f7f0e8] file:mr-4 file:rounded-full file:border-0 file:bg-[#c18f63] file:px-4 file:py-2 file:font-semibold file:text-[#2a1a16]"
-              />
-              <p className="text-xs text-[#ccb6a6]">
-                {t("If you choose not to attach a file, the note will still be stored in Firebase.")}
-              </p>
-            </label>
-
-            <button type="submit" className="cta-btn w-full px-4 py-3 sm:w-auto">
-              {t("Save Attendance")}
-            </button>
-          </form>
-          {saveMessage ? (
-            <p className="mt-4 rounded-xl border border-[#c18f63]/40 bg-[#c18f63]/12 px-3 py-2 text-sm text-[#f7f0e8]">
-              {saveMessage}
-            </p>
-          ) : null}
-        </article>
-
-        <article className="panel p-5 sm:p-6">
-          <h2 className="font-heading text-3xl tracking-wider text-[#f7f0e8]">Recent Check-Ins</h2>
-          <div className="mt-4 space-y-3">
-            {recentRecords.length ? (
-              recentRecords.map((record) => (
-                <div key={record.fullName} className="rounded-2xl border border-white/10 bg-black/15 p-4">
-                  <p className="text-xs uppercase tracking-[0.08em] text-[#d7bfaf]">{record.fullName}</p>
-                  <p className="mt-1 text-lg font-semibold text-[#f7f0e8]">{statusLabels[record.status]}</p>
-                  <p className="mt-2 text-sm text-[#dfcbbd] wrap-break-word">{record.evidenceText}</p>
-                  {record.evidenceUrl ? (
-                    <a href={record.evidenceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-[#c18f63] underline underline-offset-4">
-                      Open evidence file
-                    </a>
-                  ) : null}
+      <div className="grid gap-4 xl:grid-cols-[1fr_auto]">
+        {activeTab === "dday" ? (
+          <>
+            <article className="panel p-5 space-y-4">
+              <h2 className="font-heading text-2xl text-[#F2EDEC]">
+                Form Presensi Hari H ({osjurDays.find(d => d.value === selectedDay)?.label})
+              </h2>
+              <form onSubmit={handleDDaySubmit} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] uppercase text-[#D7DCD5]/60 mb-1">Identitas NIM Pengisi</label>
+                    <input type="text" value={studentNIM} disabled className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-[#F2EDEC] font-mono font-bold opacity-50 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase text-[#D7DCD5]/60 mb-1">Nama Lengkap Sesuai Berkas</label>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Masukkan nama lengkap..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-[#F2EDEC] outline-none focus:border-[#D5C757]" required />
+                  </div>
                 </div>
-              ))
-            ) : (
-              <p className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-[#dfcbbd]">
-                No attendance submissions yet.
+                <select value={statusDDay} onChange={(e) => setStatusDDay(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-sm text-[#F2EDEC] outline-none">
+                  <option value="hadir">Hadir di Tempat</option>
+                  <option value="menyusul">Hadir Menyusul / Terlambat</option>
+                  <option value="meninggalkan">Izin Meninggalkan Sesi</option>
+                  <option value="tidak hadir">Tidak Hadir (Sakit/Izin)</option>
+                </select>
+                <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} placeholder="Catatan opsional alasan..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-xs text-[#F2EDEC] outline-none" rows={3} />
+                <div>
+                  <label className="block text-[11px] text-[#D5C757] mb-1">Unggah Foto Bukti Kehadiran / Surat Izin</label>
+                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
+                </div>
+                <button type="submit" className="cta-btn px-6 py-2.5 text-xs uppercase">Submit Core Presence</button>
+              </form>
+            </article>
+            
+            <aside className="panel p-5 w-full xl:w-80 space-y-4">
+              <h3 className="font-heading text-xl text-[#D5C757]">Live Metrics Dashboard</h3>
+              <p className="text-[10px] uppercase tracking-wider text-[#D7DCD5]/60 border-b border-white/10 pb-1">
+                Koleksi: ATTENDANCE_{selectedDay.toUpperCase()}
               </p>
-            )}
-          </div>
-        </article>
+              <div className="text-xs space-y-2 text-[#D7DCD5]">
+                <p>Hadir: <span className="text-[#D5C757] font-bold">{filteredDDayMetrics.hadir}</span></p>
+                <p>Menyusul: <span className="text-[#D5C757] font-bold">{filteredDDayMetrics.menyusul}</span></p>
+                <p>Meninggalkan: <span className="text-[#D5C757] font-bold">{filteredDDayMetrics.meninggalkan}</span></p>
+                <p>Tidak Hadir: <span className="text-[#D5C757] font-bold">{filteredDDayMetrics.tidakHadir}</span></p>
+                <p className="pt-2 text-[10px] text-[#aaa391] border-t border-white/5">Expected Quota Target: {expectedParticipants}</p>
+              </div>
+            </aside>
+          </>
+        ) : (
+          <>
+            <article className="panel p-5 space-y-4">
+              <h2 className="font-heading text-2xl text-[#F2EDEC]">
+                Form Konfirmasi Kehadiran Besok ({osjurDays.find(d => d.value === selectedDay)?.label})
+              </h2>
+              <form onSubmit={handleH1Submit} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] uppercase text-[#D7DCD5]/60 mb-1">Identitas NIM</label>
+                    <input type="text" value={studentNIM} disabled className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-[#F2EDEC] font-mono font-bold opacity-50 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase text-[#D7DCD5]/60 mb-1">Nama Lengkap</label>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Masukkan nama lengkap..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-[#F2EDEC] outline-none focus:border-[#D5C757]" required />
+                  </div>
+                </div>
+                <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-sm text-[#F2EDEC] outline-none">
+                  <option value="hadir tepat waktu">Hadir Tepat Waktu Besok</option>
+                  <option value="hadir menyusul">Hadir Menyusul Sesi</option>
+                  <option value="izin meninggalkan">Izin Pulang Awal</option>
+                  <option value="tidak hadir">Tidak Hadir</option>
+                </select>
+                {statusH1 !== "hadir tepat waktu" && (
+                  <textarea value={reasonH1} onChange={(e) => setReasonH1(e.target.value)} placeholder="Sebutkan detail alasan berhalangan..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-xs text-[#F2EDEC] outline-none" rows={3} required />
+                )}
+                <button type="submit" className="cta-btn px-6 py-2.5 text-xs uppercase">Submit H-1 Confirmation</button>
+              </form>
+            </article>
+
+            <aside className="panel p-5 w-full xl:w-80 space-y-4">
+              <h3 className="font-heading text-xl text-[#D5C757]">Live Metrics Dashboard</h3>
+              <p className="text-[10px] uppercase tracking-wider text-[#D7DCD5]/60 border-b border-white/10 pb-1">
+                Koleksi: H1_CONFIRMATIONS_{selectedDay.toUpperCase()}
+              </p>
+              <div className="text-xs space-y-2 text-[#D7DCD5]">
+                <p>Tepat Waktu: <span className="text-teal-400 font-bold">{filteredH1Metrics.tepatWaktu}</span></p>
+                <p>Menyusul: <span className="text-teal-400 font-bold">{filteredH1Metrics.menyusul}</span></p>
+                <p>Izin Sesi: <span className="text-teal-400 font-bold">{filteredH1Metrics.izin}</span></p>
+                <p>Tidak Hadir: <span className="text-teal-400 font-bold">{filteredH1Metrics.tidakHadir}</span></p>
+                <p className="pt-2 text-[10px] text-[#aaa391] border-t border-white/5">Expected Quota Target: {expectedParticipants}</p>
+              </div>
+            </aside>
+          </>
+        )}
       </div>
+
+      {saveMessage && <p className="panel p-3 text-xs text-center text-[#D5C757] font-mono">{saveMessage}</p>}
     </section>
   );
 }

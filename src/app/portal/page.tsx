@@ -1,195 +1,179 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { setDoc, doc } from "firebase/firestore";
-import { updatePassword } from "firebase/auth";
-import { useI18n } from "../../components/I18nProvider";
-import { useAuth } from "../../components/AuthProvider";
-import { db } from "../../lib/firebase";
-import { getCurrentTimestamp } from "../../lib/engagement";
+import { useState, useEffect, FormEvent } from "react";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { useI18n } from "@/components/I18nProvider";
+import { useAuth } from "@/components/AuthProvider";
+import { db } from "@/lib/firebase";
+import { getCurrentTimestamp } from "@/lib/engagement";
 
 export default function PortalPage() {
   const { t } = useI18n();
   const { role, loading, user } = useAuth();
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    nickname: "",
-    biodata: "",
-    newPassword: "",
-  });
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [message, setMessage] = useState("");
+  
+  // State Input Data Profil Peserta
+  const [name, setName] = useState<string>("");
+  const [nickname, setNickname] = useState<string>("");
+  const [biodata, setBiodata] = useState<string>("");
 
-  // Protect: only admin can access this page
+  // State Input Form Ganti Password Mandiri
+  const [oldPassword, setOldPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+
+  // State Feedback Alur Notifikasi Sistem
+  const [profileMessage, setProfileMessage] = useState<string>("");
+  const [passwordMessage, setPasswordMessage] = useState<string>("");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState<boolean>(false);
+
+  // Mengambil representasi NIM asli maba dari potongan alamat email auth
+  const studentNIM = user?.email ? user.email.split("@")[0] : "UNKNOWN";
+
+  // KOREKSI 1: Menangkap dan memuat data nama maba hasil injeksi skrip Python secara otomatis
   useEffect(() => {
-    if (!loading && role !== "admin") {
-      router.push("/");
-    }
-  }, [role, loading, router]);
+    if (!user?.uid) return;
 
-  if (loading) {
-    return <div className="text-center py-8 text-[#c8b0a0]">{t("Loading...")}</div>;
-  }
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setName(data.name || "");
+        setNickname(data.nickname || "");
+        setBiodata(data.biodata || "");
+      }
+    }, (error) => {
+      console.debug("Isolated database synchronization log:", error.message);
+    });
 
-  if (role !== "admin") {
-    return (
-      <div className="bg-red-900/20 border border-red-600/50 rounded p-4 text-red-200">
-        <p>{t("Unauthorized")}</p>
-      </div>
-    );
-  }
+    return () => unsubscribe();
+  }, [user]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  // Submit Handler Khusus Data Informasi Profil
+  const handleUpdateProfile = async (e: FormEvent) => {
     e.preventDefault();
-    setIsUpdating(true);
-    setMessage("");
-    
+    if (!user?.uid) return;
+
+    setIsUpdatingProfile(true);
+    setProfileMessage("");
+
     try {
-      if (!user?.uid) {
-        setMessage(t("Failed to update profile."));
-        setIsUpdating(false);
-        return;
-      }
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email || "",
+        name: name.trim(),
+        nickname: nickname.trim(),
+        biodata: biodata.trim(),
+        updatedAt: getCurrentTimestamp(),
+      }, { merge: true });
 
-      // Update password if provided
-      if (formData.newPassword.trim()) {
-        if (user) {
-          await updatePassword(user, formData.newPassword);
-        }
-      }
-
-      // Save profile data to Firestore users collection
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          email: user.email,
-          name: formData.name || "",
-          nickname: formData.nickname || "",
-          biodata: formData.biodata || "",
-          updatedAt: getCurrentTimestamp(),
-        },
-        { merge: true }
-      );
-
-      setMessage(t("Profile updated successfully."));
-      setFormData({
-        ...formData,
-        newPassword: "",
-      });
-      setTimeout(() => setMessage(""), 3000);
-    } catch (error) {
-      setMessage(t("Failed to update profile."));
-      console.error(error);
+      setProfileMessage("Data informasi profil berhasil disimpan ke sistem.");
+    } catch (err: unknown) {
+      const failMessage = err instanceof Error ? err.message : "Database pipeline error.";
+      setProfileMessage(`Gagal menyimpan profil: ${failMessage}`);
     } finally {
-      setIsUpdating(false);
+      setIsUpdatingProfile(false);
     }
   };
+
+  // KOREKSI 3: Submit Handler Khusus Kartu Pengubahan Password Mandiri Terintegrasi Firebase
+  const handleUpdatePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!user?.email) return;
+
+    if (!oldPassword.trim() || !newPassword.trim()) {
+      setPasswordMessage("Seluruh kolom verifikasi kata sandi wajib diisi.");
+      return;
+    }
+
+    if (newPassword.trim().length < 6) {
+      setPasswordMessage("Kata sandi baru minimal harus terdiri dari 6 karakter.");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setPasswordMessage("");
+
+    try {
+      // Re-autentikasi wajib demi gerbang keamanan Firebase Auth sebelum eksekusi ganti password
+      const credential = EmailAuthProvider.credential(user.email, oldPassword.trim());
+      await reauthenticateWithCredential(user, credential);
+      
+      // Update kata sandi baru ke server Firebase Auth
+      await updatePassword(user, newPassword.trim());
+
+      setPasswordMessage("Kata sandi akses Anda berhasil diperbarui.");
+      setOldPassword("");
+      setNewPassword("");
+    } catch (err: unknown) {
+      const failMessage = err instanceof Error ? err.message : "Authentication network failure.";
+      if (failMessage.includes("wrong-password")) {
+        setPasswordMessage("Ganti password gagal: Kata sandi lama yang Anda masukkan salah.");
+      } else {
+        setPasswordMessage(`Ganti password gagal: ${failMessage}`);
+      }
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  if (loading) return <div className="text-center py-8 text-[#aaa391]">{t("Loading...")}</div>;
 
   return (
-    <section className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <article className="panel p-6 sm:p-7">
-          <p className="status-pill">{t("Committee Access")}</p>
-          <h2 className="mt-3 font-heading text-4xl tracking-wider text-[#f2f1ec]">{t("Admin Dashboard")}</h2>
-          <p className="mt-3 text-[#ddd8cb]">
-            {t("Publish tasks, set deadlines, monitor completion status, and review attendance confirmations.")}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link href="/admin" className="cta-btn inline-flex px-4 py-2">
-              {t("Admin")}
-            </Link>
-          </div>
+    <section className="space-y-6">
+      <header className="panel p-6">
+        <p className="status-pill">{role === "admin" ? "Admin Mode" : "Peserta Mode"}</p>
+        <h1 className="mt-2 font-heading text-4xl text-[#F2EDEC] tracking-wider">{t("Profile Settings")}</h1>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
+        {/* KARTU 1: PENGATURAN INFORMASI IDENTITAS PROFIL */}
+        <article className="panel p-6 space-y-4">
+          <h2 className="font-heading text-2xl text-[#D5C757] tracking-wide">Identity Information</h2>
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-[#D7DCD5]/60 mb-1">Username / NIM</label>
+              <input type="text" value={studentNIM} disabled className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[#F2EDEC] opacity-40 text-sm font-mono font-bold outline-none" />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-[#D7DCD5]/60 mb-1">Full Identity Name</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama Lengkap Anda" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#F2EDEC] text-sm outline-none focus:border-[#D5C757] transition" required />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-[#D7DCD5]/60 mb-1">Operation Call Sign (Nickname)</label>
+              <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Nama Panggilan Anda" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#F2EDEC] text-sm outline-none focus:border-[#D5C757] transition" required />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-[#D7DCD5]/60 mb-1">Personal Bio Specifications</label>
+              <textarea value={biodata} onChange={(e) => setBiodata(e.target.value)} placeholder="Ceritakan singkat mengenai profil data diri Anda..." className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" rows={3} required />
+            </div>
+            
+            {profileMessage && <p className="text-xs font-mono text-[#D5C757] bg-black/10 p-2 rounded-lg border border-white/5">{profileMessage}</p>}
+            
+            <button type="submit" disabled={isUpdatingProfile} className="cta-btn w-full py-2.5 text-xs uppercase tracking-wider">
+              {isUpdatingProfile ? "Syncing Identity..." : "Save Identity Changes"}
+            </button>
+          </form>
         </article>
 
-        <article className="panel p-6 sm:p-7">
-          <p className="status-pill">{t("Account Settings")}</p>
-          <h2 className="mt-3 font-heading text-2xl tracking-wider text-[#f2f1ec]">{t("Profile Settings")}</h2>
-          <p className="mt-3 text-[#ddd8cb]">
-            {t("Update your account information and preferences.")}
-          </p>
-          
-          <form onSubmit={handleUpdateProfile} className="mt-5 space-y-4">
+        {/* KARTU 2: MODUL BARU FORM PENGUBAHAN KATA SANDI (PASSWORD) */}
+        <article className="panel p-6 space-y-4">
+          <h2 className="font-heading text-2xl text-[#CE4A2D] tracking-wide">Security & Password</h2>
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <p className="text-xs text-[#D7DCD5]/60 leading-relaxed">
+              Demi alasan keamanan data operasional, Anda diwajibkan untuk memasukkan kata sandi lama sebelum diizinkan mengunci kata sandi baru.
+            </p>
             <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">{t("Email")}</label>
-              <input
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] disabled:opacity-50"
-              />
+              <label className="block text-[11px] uppercase tracking-wider text-[#CE4A2D] mb-1 font-semibold">Current Password (Kata Sandi Lama)</label>
+              <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="••••••••" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#F2EDEC] text-sm outline-none focus:border-[#CE4A2D] transition" required />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-teal-400 mb-1 font-semibold">New Operational Password (Kata Sandi Baru)</label>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimal 6 karakter baru..." className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#F2EDEC] text-sm outline-none focus:border-teal-400 transition" required />
             </div>
 
-            <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">{t("Full Name")}</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Your full name"
-                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
-              />
-            </div>
+            {passwordMessage && <p className="text-xs font-mono text-[#D5C757] bg-black/10 p-2.5 rounded-lg border border-white/5">{passwordMessage}</p>}
 
-            <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">Nickname</label>
-              <input
-                type="text"
-                name="nickname"
-                value={formData.nickname}
-                onChange={handleInputChange}
-                placeholder="Your nickname"
-                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">Biodata</label>
-              <textarea
-                name="biodata"
-                value={formData.biodata}
-                onChange={handleInputChange}
-                placeholder="Tell us about yourself"
-                rows={3}
-                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-[#c8b0a0] mb-2">{t("New Password")}</label>
-              <input
-                type="password"
-                name="newPassword"
-                value={formData.newPassword}
-                onChange={handleInputChange}
-                placeholder="Leave blank to keep current password"
-                className="w-full bg-white/5 border border-white/15 rounded px-3 py-2 text-[#f2f1ec] placeholder-[#8b7d72]"
-              />
-            </div>
-
-            {message && (
-              <p className={`text-sm ${message.includes("successfully") ? "text-green-400" : "text-red-400"}`}>
-                {message}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isUpdating}
-              className="w-full cta-btn px-4 py-2 disabled:opacity-50"
-            >
-              {isUpdating ? t("Updating...") : t("Save Changes")}
+            <button type="submit" disabled={isUpdatingPassword} className="w-full py-2.5 bg-[#CE4A2D] hover:bg-[#b23d22] disabled:opacity-40 text-[#F2EDEC] font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-lg">
+              {isUpdatingPassword ? "Encrypting Key..." : "Deploy New Password"}
             </button>
           </form>
         </article>

@@ -1,10 +1,13 @@
 export async function uploadToCloudinary(file: File) {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const rawCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const rawUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-  if (!cloudName || !uploadPreset) {
-    throw new Error("Cloudinary configuration is missing.");
+  if (!rawCloudName || !rawUploadPreset) {
+    throw new Error("Cloudinary configuration credentials missing.");
   }
+
+  const cloudName = rawCloudName.replace(/['"]/g, "");
+  const uploadPreset = rawUploadPreset.replace(/['"]/g, "");
 
   const formData = new FormData();
   formData.append("file", file);
@@ -16,7 +19,10 @@ export async function uploadToCloudinary(file: File) {
   });
 
   if (!response.ok) {
-    throw new Error("Cloudinary upload failed.");
+    // Membongkar pesan error detail bawaan dari JSON server Cloudinary
+    const errorData = await response.json().catch(() => ({}));
+    const remoteMessage = errorData?.error?.message || `Status code ${response.status}`;
+    throw new Error(remoteMessage);
   }
 
   return (await response.json()) as {
@@ -28,18 +34,19 @@ export async function uploadToCloudinary(file: File) {
 }
 
 export async function uploadDocumentToCloudinary(file: File, folder: string = "tasks") {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const rawCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const rawUploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-  if (!cloudName || !uploadPreset) {
-    throw new Error("Cloudinary configuration is missing.");
+  if (!rawCloudName || !rawUploadPreset) {
+    throw new Error("Cloudinary configuration credentials missing.");
   }
+
+  const cloudName = rawCloudName.replace(/['"]/g, "");
+  const uploadPreset = rawUploadPreset.replace(/['"]/g, "");
 
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
-  formData.append("folder", folder);
-  formData.append("resource_type", "auto"); // Accepts any file type
 
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
     method: "POST",
@@ -47,7 +54,10 @@ export async function uploadDocumentToCloudinary(file: File, folder: string = "t
   });
 
   if (!response.ok) {
-    throw new Error("Document upload failed.");
+    // Membongkar pesan error detail bawaan dari JSON server Cloudinary
+    const errorData = await response.json().catch(() => ({}));
+    const remoteMessage = errorData?.error?.message || `Status code ${response.status}`;
+    throw new Error(remoteMessage);
   }
 
   return (await response.json()) as {

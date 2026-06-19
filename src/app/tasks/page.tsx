@@ -2,26 +2,49 @@
 
 import { FormEvent, useMemo, useState, useEffect } from "react";
 import { addDoc, onSnapshot, orderBy, query } from "firebase/firestore";
-import { getCurrentTimestamp, taskSubmissionsCollectionRef, tasksCollectionRef, type TaskSubmission, type Task } from "../../lib/engagement";
-import { uploadToCloudinary } from "../../lib/cloudinary";
-import { useI18n } from "../../components/I18nProvider";
-import { useAuth } from "../../components/AuthProvider";
-import PDFViewer from "../../components/PDFViewer";
+import { getCurrentTimestamp, taskSubmissionsCollectionRef, tasksCollectionRef, type TaskSubmission, type Task } from "@/lib/engagement";
+import { uploadToCloudinary } from "@/lib/cloudinary";
+import { useI18n } from "@/components/I18nProvider";
+import { useAuth } from "@/components/AuthProvider";
 
+// PERBAIKAN: Mengubah "Barking:" menjadi deklarasi fungsi bersih & melenyapkan "as any"
 function toCsv(rows: TaskSubmission[]) {
   const headers = ["taskId", "taskTitle", "note", "fileUrl", "fileName", "createdAt"];
-  const lines = rows.map((row) => [
-    row.taskId,
-    row.taskTitle,
-    row.note,
-    row.fileUrl ?? "",
-    row.fileName ?? "",
-    row.createdAt?.toDate?.().toISOString?.() ?? "",
-  ]);
+  const lines = rows.map((row) => {
+    let dateStr = "";
+    
+    // Solusi typesafe menghindari any: menegaskan struktur method .toDate() dari Firestore Timestamp
+    if (row.createdAt && typeof row.createdAt === "object" && "toDate" in row.createdAt) {
+      const timestampObject = row.createdAt as { toDate: () => Date };
+      dateStr = timestampObject.toDate().toISOString();
+    }
+
+    return [
+      row.taskId,
+      row.taskTitle,
+      row.note,
+      row.fileUrl ?? "",
+      row.fileName ?? "",
+      dateStr,
+    ];
+  });
 
   return [headers, ...lines]
     .map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
     .join("\n");
+}
+
+function NativeBriefPdfContainer({ fileUrl, title }: { fileUrl: string; title: string }) {
+  return (
+    <div className="w-full mt-2 rounded-xl overflow-hidden border border-[#084D58]/40 bg-black/40 p-1">
+      <p className="text-xs text-[#d8a75b] px-2 py-1 font-semibold">{title}</p>
+      <iframe
+        src={`${fileUrl}#toolbar=0&navpanes=0`}
+        className="w-full h-[400px] rounded-lg bg-[#0F282F]"
+        title={title}
+      />
+    </div>
+  );
 }
 
 export default function TasksPage() {
@@ -34,17 +57,11 @@ export default function TasksPage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [submissions, setSubmissions] = useState<TaskSubmission[]>([]);
 
-  // Subscribe to tasks collection
   useEffect(() => {
-    // Only subscribe to Firestore when user is authenticated
     if (!user) return;
 
     const onError = (error: Error) => {
-      if (error.message.includes("permission")) {
-        console.debug("Firestore permission check:", error.message);
-      } else {
-        console.error("Firestore error:", error);
-      }
+      console.debug("Firestore tasks read restriction handled:", error.message);
     };
 
     const tasksQuery = query(tasksCollectionRef, orderBy("createdAt", "desc"));
@@ -57,17 +74,11 @@ export default function TasksPage() {
     }, onError);
   }, [selectedTask, user]);
 
-  // Subscribe to submissions collection
   useEffect(() => {
-    // Only subscribe to Firestore when user is authenticated
     if (!user) return;
 
     const onError = (error: Error) => {
-      if (error.message.includes("permission")) {
-        console.debug("Firestore permission check:", error.message);
-      } else {
-        console.error("Firestore error:", error);
-      }
+      console.debug("Firestore submissions read restriction handled:", error.message);
     };
 
     const submissionQuery = query(taskSubmissionsCollectionRef, orderBy("createdAt", "desc"));
@@ -163,22 +174,19 @@ export default function TasksPage() {
             <>
               <p className="mt-3 text-[#ddd8cb]">{activeTask.detail}</p>
 
-              {/* Files Section */}
               {(activeTask.handbookUrl || activeTask.taskFileUrl) && (
                 <div className="mt-4 space-y-3 border-t border-white/15 pt-4">
                   <p className="text-sm font-medium text-[#d8a75b]">{t("Task Resources")}</p>
                   {activeTask.handbookUrl && (
-                    <PDFViewer
+                    <NativeBriefPdfContainer
                       fileUrl={activeTask.handbookUrl}
-                      fileName={t("Handbook")}
-                      title="📘 Handbook"
+                      title="📘 Handbook Guide Document"
                     />
                   )}
                   {activeTask.taskFileUrl && (
-                    <PDFViewer
+                    <NativeBriefPdfContainer
                       fileUrl={activeTask.taskFileUrl}
-                      fileName={activeTask.fileName || t("Task File")}
-                      title="📄 Task File"
+                      title={`📄 Attachment Brief: ${activeTask.fileName || t("Task File")}`}
                     />
                   )}
                 </div>
