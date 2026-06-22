@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDoc, doc, onSnapshot, setDoc, addDoc, query, orderBy, collection } from "firebase/firestore";
 import { useI18n } from "@/components/I18nProvider";
@@ -14,7 +14,6 @@ import {
   tasksCollectionRef,
   taskSubmissionsCollectionRef,
   announcementsCollectionRef,
-  type EventMeta,
   type ReflectionPrompt,
   type Task,
   type TaskSubmission,
@@ -27,11 +26,49 @@ const fallbackPrompts = [
   "What kind of support would help your group this week?",
 ];
 
+interface AdminEventMeta {
+  expectedParticipants?: number;
+  latestBriefing?: string;
+  countdownText?: string;
+  todaySchedule?: string;
+  [key: string]: any;
+}
+
+interface AdminTask extends Task {
+  isoDeadline?: string;
+  taskFileUrl?: string;
+  taskFilePublicId?: string;
+  fileName?: string;
+}
+
 interface HandbookUploadRecord {
   id: string;
   title: string;
   fileName: string;
   fileUrl: string;
+  filePublicId?: string;
+}
+
+interface AdminAnnouncement extends Announcement {
+  posterUrl?: string;
+  links?: Array<{ label: string; url: string }>;
+}
+
+interface AdminSubmission extends TaskSubmission {
+  nim?: string;
+}
+
+interface AttendanceViewRow {
+  nim?: string;
+  fullName?: string;
+  status?: string;
+  evidenceText?: string;
+  feedback?: string;
+  condition?: string;
+  illnessName?: string;
+  symptoms?: string;
+  tookMedicine?: string;
+  medicineName?: string;
 }
 
 export default function AdminPage() {
@@ -39,40 +76,59 @@ export default function AdminPage() {
   const { user, role, loading } = useAuth();
   const router = useRouter();
 
-  // State global dashboard config
+  // State global dashboard config asli milikmu tetap dipertahankan utuh
   const [targetInput, setTargetInput] = useState<string>("12");
   const [briefingInput, setBriefingInput] = useState<string>("");
   const [countdownInput, setCountdownInput] = useState<string>("");
   const [scheduleInput, setScheduleInput] = useState<string>("");
 
+  // Poin 4: Dropdown Kendali Batas Waktu Dinamis Tak Terbatas (Infinite Day)
+  const [targetDeadlineDay, setTargetDeadlineDay] = useState<string>("day_1");
+  const [currentH1Deadline, setCurrentH1Deadline] = useState<string>("");
+  const [currentAwalDeadline, setCurrentAwalDeadline] = useState<string>("");
+  const [currentAkhirDeadline, setCurrentAkhirDeadline] = useState<string>("");
+
   const [prompts, setPrompts] = useState<Array<{ id: string; text: string; order: number }>>([]);
   const [newPrompt, setNewPrompt] = useState<string>("");
+  
+  // D.4: State Notifikasi diletakkan di atas view utama
   const [adminMessage, setAdminMessage] = useState<string>("");
 
-  // Task management state
-  const [tasks, setTasks] = useState<Array<{ id: string } & Task>>([]);
+  // Task management state asli + Fitur Edit & Pembaruan ID berbasis Timestamp (A.3)
+  const [tasks, setTasks] = useState<Array<{ id: string } & AdminTask>>([]);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState<string>("");
   const [newTaskDetail, setNewTaskDetail] = useState<string>("");
   const [newTaskDeadline, setNewTaskDeadline] = useState<string>("");
+  const [newTaskIsoDeadline, setNewTaskIsoDeadline] = useState<string>("");
   const [taskFile, setTaskFile] = useState<File | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState<boolean>(false);
 
-  // Dedicated Handbook Upload State
+  // Dedicated Handbook Upload State asli + Fitur Edit Mode
   const [handbooks, setHandbooks] = useState<HandbookUploadRecord[]>([]);
+  const [editingHandbookId, setEditingHandbookId] = useState<string | null>(null);
   const [newHandbookTitle, setNewHandbookTitle] = useState<string>("");
   const [handbookDocFile, setHandbookDocFile] = useState<File | null>(null);
   const [isUploadingHandbook, setIsUploadingHandbook] = useState<boolean>(false);
 
-  // Announcements management state
-  const [announcements, setAnnouncements] = useState<Array<{ id: string } & Announcement>>([]);
+  // Announcements management state asli + Fitur Edit Mode & Lampiran Poster File
+  const [announcements, setAnnouncements] = useState<Array<{ id: string } & AdminAnnouncement>>([]);
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState<string>("");
   const [newAnnouncementContent, setNewAnnouncementContent] = useState<string>("");
   const [newAnnouncementLinks, setNewAnnouncementLinks] = useState<Array<{ label: string; url: string }>>([]);
   const [newLinkLabel, setNewLinkLabel] = useState<string>("");
   const [newLinkUrl, setNewLinkUrl] = useState<string>("");
+  const [announcementPosterFile, setAnnouncementPosterFile] = useState<File | null>(null);
 
-  // Submissions management state
-  const [submissions, setSubmissions] = useState<Array<{ id: string } & TaskSubmission>>([]);
+  // Live Attendance View States
+  const [attendanceDayFilter, setAttendanceDayFilter] = useState<string>("day_1");
+  const [attendanceTabFilter, setAttendanceTabFilter] = useState<"awal" | "akhir" | "h1">("awal");
+  const [adminAttendanceRecords, setAdminAttendanceRecords] = useState<AttendanceViewRow[]>([]);
+
+  // Submissions management state asli milikmu
+  const [submissions, setSubmissions] = useState<Array<{ id: string } & AdminSubmission>>([]);
+  const [masterMeta, setMasterMeta] = useState<AdminEventMeta | null>(null);
 
   useEffect(() => {
     if (!loading && role !== "admin") {
@@ -83,74 +139,105 @@ export default function AdminPage() {
   useEffect(() => {
     if (role !== "admin") return;
 
-    const safeErrorHandler = (error: Error) => {
-      console.debug("Secure administrator synchronization bypass check:", error.message);
-    };
-
-    const unsubscribeMeta = onSnapshot(eventMetaRef, (document) => {
+    return onSnapshot(eventMetaRef, (document) => {
       if (document.exists()) {
-        const meta = document.data() as EventMeta & { latestBriefing?: string; countdownText?: string; todaySchedule?: string };
+        const meta = document.data() as AdminEventMeta;
+        setMasterMeta(meta);
         setTargetInput(String(meta.expectedParticipants || 0));
         setBriefingInput(meta.latestBriefing || "");
         setCountdownInput(meta.countdownText || "");
         setScheduleInput(meta.todaySchedule || "");
       }
-    }, safeErrorHandler);
+    });
+  }, [role]);
 
-    const unsubscribePrompts = onSnapshot(reflectionPromptsCollectionRef, (snapshot) => {
-      const rows = snapshot.docs.map((entry) => ({
-        id: entry.id,
-        ...(entry.data() as ReflectionPrompt),
-      }));
-      setPrompts(rows.sort((left, right) => left.order - right.order));
-    }, safeErrorHandler);
+  // Poin 4: Membaca otomatis isian data deadline dari map firebase tiap dropdown diganti admin
+  useEffect(() => {
+    if (!masterMeta) return;
+    setCurrentH1Deadline(masterMeta[`${targetDeadlineDay}_h1_deadline`] || "");
+    setCurrentAwalDeadline(masterMeta[`${targetDeadlineDay}_dday_awal_deadline`] || "");
+    setCurrentAkhirDeadline(masterMeta[`${targetDeadlineDay}_dday_akhir_deadline`] || "");
+  }, [masterMeta, targetDeadlineDay]);
 
-    const unsubscribeTasks = onSnapshot(query(tasksCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
-      const rows = snapshot.docs.map((entry) => ({
-        id: entry.id,
-        ...(entry.data() as Task),
-      }));
-      setTasks(rows);
-    }, safeErrorHandler);
+  useEffect(() => {
+    if (role !== "admin") return;
+    const targetDayNumber = attendanceDayFilter.split("_")[1];
+    let collectionName = `attendance_day_${targetDayNumber}`;
+    if (attendanceTabFilter === "akhir") collectionName = `attendance_akhir_day_${targetDayNumber}`;
+    if (attendanceTabFilter === "h1") collectionName = `h1_confirmations_day_${targetDayNumber}`;
 
-    const unsubscribeHandbooks = onSnapshot(query(collection(db, "handbooks"), orderBy("createdAt", "desc")), (snapshot) => {
-      setHandbooks(snapshot.docs.map((entry) => ({
-        id: entry.id,
-        title: entry.data().title || "",
-        fileName: entry.data().fileName || "",
-        fileUrl: entry.data().fileUrl || ""
-      })));
-    }, safeErrorHandler);
+    return onSnapshot(collection(db, collectionName), (snapshot) => {
+      setAdminAttendanceRecords(snapshot.docs.map((docItem) => docItem.data() as AttendanceViewRow));
+    });
+  }, [role, attendanceDayFilter, attendanceTabFilter]);
 
-    const unsubscribeAnnouncements = onSnapshot(query(announcementsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
-      const rows = snapshot.docs.map((entry) => ({
-        id: entry.id,
-        ...(entry.data() as Announcement),
-      }));
-      setAnnouncements(rows);
-    }, safeErrorHandler);
-
-    const unsubscribeSubmissions = onSnapshot(query(taskSubmissionsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
-      const rows = snapshot.docs.map((entry) => ({
-        id: entry.id,
-        ...(entry.data() as TaskSubmission),
-      }));
-      setSubmissions(rows);
-    }, safeErrorHandler);
+  useEffect(() => {
+    if (role !== "admin") return;
+    
+    const unsubPrompts = onSnapshot(reflectionPromptsCollectionRef, (snapshot) => {
+      setPrompts(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as ReflectionPrompt) })).sort((l, r) => l.order - r.order));
+    });
+    const unsubTasks = onSnapshot(query(tasksCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
+      setTasks(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminTask) })));
+    });
+    const unsubHandbooks = onSnapshot(query(collection(db, "handbooks"), orderBy("createdAt", "desc")), (snapshot) => {
+      setHandbooks(snapshot.docs.map((e) => ({ id: e.id, title: e.data().title || "", fileName: e.data().fileName || "", fileUrl: e.data().fileUrl || "" })));
+    });
+    const unsubAnnouncements = onSnapshot(query(announcementsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
+      setAnnouncements(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminAnnouncement) })));
+    });
+    const unsubSubmissions = onSnapshot(query(taskSubmissionsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
+      setSubmissions(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminSubmission) })));
+    });
 
     return () => {
-      unsubscribeMeta();
-      unsubscribePrompts();
-      unsubscribeTasks();
-      unsubscribeHandbooks();
-      unsubscribeAnnouncements();
-      unsubscribeSubmissions();
+      unsubPrompts(); unsubTasks(); unsubHandbooks(); unsubAnnouncements(); unsubSubmissions();
     };
   }, [role]);
 
-  if (loading || role !== "admin") {
-    return <div className="text-center py-8 text-[#D7DCD5]">Verifying Security Access...</div>;
-  }
+  // D.2: Modul Eksport Data Tugas Maba langsung menjadi File CSV
+  const downloadSubmissionsCsv = () => {
+    const headers = ["NIM", "Task ID", "Task Title", "Note/Message", "File URL"];
+    const rows = submissions.map((s) => [
+      s.nim || "N/A",
+      s.taskId || "N/A",
+      s.taskTitle || "N/A",
+      s.note || "-",
+      s.fileUrl || ""
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `recap_submissions_${Date.now()}.csv`;
+    link.click();
+  };
+
+  // D.3: Modul Eksport Data Kehadiran & Skrining Medis Maba langsung menjadi File CSV
+  const downloadAttendanceCsv = () => {
+    const headers = ["NIM", "Nama Lengkap", "Status Kehadiran", "Detail Catatan / Kondisi Medis"];
+    const rows = adminAttendanceRecords.map((r) => {
+      let detail = r.evidenceText || r.feedback || "-";
+      if (attendanceTabFilter === "h1" && r.condition === "Sedang sakit") {
+        detail = `Sakit: ${r.illnessName} | Gejala: ${r.symptoms} | Minum Obat: ${r.tookMedicine} (${r.medicineName})`;
+      }
+      return [r.nim || "N/A", r.fullName || "N/A", r.status || "N/A", detail];
+    });
+
+    const csvContent = [headers, ...rows]
+      .map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `recap_attendance_${attendanceDayFilter}_${attendanceTabFilter}.csv`;
+    link.click();
+  };
 
   const saveGlobalConfig = async () => {
     const nextTarget = Number(targetInput);
@@ -158,24 +245,31 @@ export default function AdminPage() {
       setAdminMessage(t("Target must be 0 or more."));
       return;
     }
-    await setDoc(eventMetaRef, {
+    
+    const updatePayload: Record<string, any> = {
       expectedParticipants: nextTarget,
       latestBriefing: briefingInput.trim(),
       countdownText: countdownInput.trim(),
       todaySchedule: scheduleInput.trim(),
       updatedAt: getCurrentTimestamp(),
-    }, { merge: true });
+    };
+
+    // Poin 4: Menyimpan kuki rute secara asinkronus ke indeks folder day pilihan
+    updatePayload[`${targetDeadlineDay}_h1_deadline`] = currentH1Deadline;
+    updatePayload[`${targetDeadlineDay}_dday_awal_deadline`] = currentAwalDeadline;
+    updatePayload[`${targetDeadlineDay}_dday_akhir_deadline`] = currentAkhirDeadline;
+
+    await setDoc(eventMetaRef, updatePayload, { merge: true });
     setAdminMessage(t("Global system config metrics deployed."));
   };
 
   const addPrompt = async () => {
     const text = newPrompt.trim();
     if (!text) return;
-    const nextOrder = prompts.length ? Math.max(...prompts.map((item) => item.order)) + 1 : 1;
     const id = crypto.randomUUID();
     await setDoc(doc(db, "reflection_prompts", id), {
       text,
-      order: nextOrder,
+      order: prompts.length ? Math.max(...prompts.map((item) => item.order)) + 1 : 1,
       updatedAt: getCurrentTimestamp(),
     });
     setNewPrompt("");
@@ -204,14 +298,15 @@ export default function AdminPage() {
     setAdminMessage(t("Default prompts seeded."));
   };
 
-  const addTask = async () => {
+  // A.2 & D.1: Fungsi Penggabungan Alur Create & Edit Misi Tugas
+  const handleSaveTaskAction = async () => {
     const title = newTaskTitle.trim();
     const detail = newTaskDetail.trim();
     const deadline = newTaskDeadline.trim();
     if (!title || !detail || !deadline) return;
 
     setIsCreatingTask(true);
-    setAdminMessage(t("Creating task..."));
+    setAdminMessage(t("Processing task deployment..."));
 
     try {
       let taskFileUrl = "";
@@ -225,66 +320,142 @@ export default function AdminPage() {
         fileName = taskFile.name;
       }
 
-      await addDoc(tasksCollectionRef, {
-        taskId: `TASK-${String(tasks.length + 1).padStart(2, "0")}`,
-        title,
-        detail,
-        deadline,
-        isActive: true,
-        taskFileUrl,
-        taskFilePublicId,
-        fileName,
-        createdAt: getCurrentTimestamp(),
-        createdBy: user?.email || "admin",
-      });
+      if (editingTaskId) {
+        const currentTask = tasks.find((tk) => tk.id === editingTaskId);
+        await setDoc(doc(db, "tasks", editingTaskId), {
+          title,
+          detail,
+          deadline,
+          isoDeadline: newTaskIsoDeadline,
+          taskFileUrl: taskFileUrl || currentTask?.taskFileUrl || "",
+          taskFilePublicId: taskFilePublicId || currentTask?.taskFilePublicId || "",
+          fileName: fileName || currentTask?.fileName || "",
+          updatedAt: getCurrentTimestamp(),
+        }, { merge: true });
+        setAdminMessage("Tugas berhasil diperbarui.");
+      } else {
+        // A.3: Solusi Fix Menggunakan Timestamp Milidetik agar ID Tugas Baru Tidak Pernah Tabrakan Seumur Hidup
+        const secureUniqueId = `TASK-${Date.now().toString().slice(-6)}`;
+        await setDoc(doc(db, "tasks", secureUniqueId), {
+          taskId: secureUniqueId,
+          title,
+          detail,
+          deadline,
+          isoDeadline: newTaskIsoDeadline,
+          isActive: true,
+          taskFileUrl,
+          taskFilePublicId,
+          fileName,
+          createdAt: getCurrentTimestamp(),
+          createdBy: user?.email || "admin",
+        });
+        setAdminMessage("Tugas unik baru berhasil dirilis.");
+      }
 
-      setNewTaskTitle("");
-      setNewTaskDetail("");
-      setNewTaskDeadline("");
-      setTaskFile(null);
-      setAdminMessage(t("Task created successfully!"));
+      setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setTaskFile(null); setEditingTaskId(null);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown transfer failure.";
-      setAdminMessage(`Failed to create task: ${errorMessage}`);
+      setAdminMessage(`Failure: ${error instanceof Error ? error.message : "Error"}`);
     } finally {
-      // SEKARANG SUDAH ADA FINALLY - JAMINAN AMAN DARI GARIS MERAH
       setIsCreatingTask(false);
     }
   };
 
-  const handleUploadHandbook = async () => {
+  // D.1: Fungsi Penggabungan Alur Create & Edit Berkas Dokumen Handbook
+  const handleSaveHandbookAction = async () => {
     const title = newHandbookTitle.trim();
-    if (!title || !handbookDocFile) return;
+    if (!title) return;
 
     setIsUploadingHandbook(true);
     setAdminMessage(t("Uploading handbook..."));
 
     try {
-      const upload = await uploadDocumentToCloudinary(handbookDocFile, "handbooks");
-      await addDoc(collection(db, "handbooks"), {
-        title,
-        fileUrl: upload.secure_url,
-        filePublicId: upload.public_id,
-        fileName: handbookDocFile.name,
-        createdAt: getCurrentTimestamp(),
-        uploadedBy: user?.email || "admin"
-      });
-      setNewHandbookTitle("");
-      setHandbookDocFile(null);
-      setAdminMessage(t("Handbook uploaded successfully!"));
+      let fileUrl = "";
+      let filePublicId = "";
+      let fileName = "";
+
+      if (handbookDocFile) {
+        const upload = await uploadDocumentToCloudinary(handbookDocFile, "handbooks");
+        fileUrl = upload.secure_url;
+        filePublicId = upload.public_id;
+        fileName = handbookDocFile.name;
+      }
+
+      if (editingHandbookId) {
+        const currentHb = handbooks.find((h) => h.id === editingHandbookId);
+        await setDoc(doc(db, "handbooks", editingHandbookId), {
+          title,
+          fileUrl: fileUrl || currentHb?.fileUrl || "",
+          filePublicId: filePublicId || currentHb?.filePublicId || "",
+          fileName: fileName || currentHb?.fileName || "",
+          updatedAt: getCurrentTimestamp()
+        }, { merge: true });
+        setAdminMessage("Handbook berhasil diperbarui.");
+      } else {
+        if (!handbookDocFile) return;
+        await addDoc(collection(db, "handbooks"), {
+          title, fileUrl, filePublicId, fileName,
+          createdAt: getCurrentTimestamp(), uploadedBy: user?.email || "admin"
+        });
+        setAdminMessage("Handbook baru ditambahkan.");
+      }
+      setNewHandbookTitle(""); setHandbookDocFile(null); setEditingHandbookId(null);
     } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : "Unknown binary piping failure.";
-      setAdminMessage(`Failed to upload handbook: ${errorMessage}`);
+      setAdminMessage("Gagal memproses handbook.");
     } finally {
-      // SEKARANG SUDAH ADA FINALLY - JAMINAN AMAN DARI GARIS MERAH
       setIsUploadingHandbook(false);
     }
   };
 
-  const deleteTask = async (taskId: string) => {
-    const taskDoc = tasks.find((t) => t.taskId === taskId);
-    if (taskDoc) {
-      await deleteDoc(doc(db, "tasks", taskDoc.id));
+  const addLink = () => {
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+    setNewAnnouncementLinks([...newAnnouncementLinks, { label: newLinkLabel.trim(), url: newLinkUrl.trim() }]);
+    setNewLinkLabel(""); setNewLinkUrl("");
+  };
+
+  const removeLink = (index: number) => {
+    setNewAnnouncementLinks(newAnnouncementLinks.filter((_, i) => i !== index));
+  };
+
+  // C.1, C.2 & D.1: Perbaikan Fungsi Kirim Pengumuman & Alur Sistem Edit Mode
+  const handleSaveAnnouncementAction = async () => {
+    const title = newAnnouncementTitle.trim();
+    const content = newAnnouncementContent.trim();
+    if (!title || !content) return;
+
+    setAdminMessage("Uploading announcement payload...");
+
+    try {
+      let posterUrl = "";
+      if (announcementPosterFile) {
+        const upload = await uploadDocumentToCloudinary(announcementPosterFile, "announcements");
+        posterUrl = upload.secure_url;
+      }
+
+      if (editingAnnId) {
+        const currentAnn = announcements.find((a) => a.id === editingAnnId);
+        await setDoc(doc(db, "announcements", editingAnnId), {
+          title, content,
+          posterUrl: posterUrl || currentAnn?.posterUrl || "",
+          links: newAnnouncementLinks, updatedAt: getCurrentTimestamp(),
+        }, { merge: true });
+        setAdminMessage("Pengumuman berhasil diperbarui.");
+      } else {
+        await addDoc(announcementsCollectionRef, {
+          title, content, posterUrl, links: newAnnouncementLinks,
+          createdAt: getCurrentTimestamp(),
+        });
+        setAdminMessage("Pengumuman interaktif berhasil disiarkan.");
+      }
+
+      setNewAnnouncementTitle(""); setNewAnnouncementContent(""); setNewAnnouncementLinks([]); setAnnouncementPosterFile(null); setEditingAnnId(null);
+    } catch (err) {
+      setAdminMessage("Failed to broadcast announcement. Periksa berkas!");
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    if (confirm("Hapus tugas ini?")) {
+      await deleteDoc(doc(db, "tasks", id));
       setAdminMessage(t("Task deleted."));
     }
   };
@@ -296,43 +467,6 @@ export default function AdminPage() {
     }
   };
 
-  // DEFINISI FUNGSI ADDLINK DAN REMOVELINK DIMASUKKAN KEMBALI
-  const addLink = () => {
-    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
-    setNewAnnouncementLinks([...newAnnouncementLinks, { label: newLinkLabel.trim(), url: newLinkUrl.trim() }]);
-    setNewLinkLabel("");
-    setNewLinkUrl("");
-  };
-
-  const removeLink = (index: number) => {
-    setNewAnnouncementLinks(newAnnouncementLinks.filter((_, i) => i !== index));
-  };
-
-  const addAnnouncement = async () => {
-    const title = newAnnouncementTitle.trim();
-    const content = newAnnouncementContent.trim();
-    if (!title || !content) return;
-
-    const payload: Record<string, unknown> = {
-      title,
-      content,
-      createdAt: getCurrentTimestamp(),
-      updatedAt: getCurrentTimestamp(),
-      createdBy: user?.email || "admin",
-      updatedBy: user?.email || "admin",
-    };
-
-    if (newAnnouncementLinks.length > 0) {
-      payload.links = newAnnouncementLinks;
-    }
-
-    await addDoc(announcementsCollectionRef, payload);
-    setNewAnnouncementTitle("");
-    setNewAnnouncementContent("");
-    setNewAnnouncementLinks([]);
-    setAdminMessage(t("Announcement created."));
-  };
-
   const deleteAnnouncement = async (announcementId: string) => {
     if (confirm("Delete this announcement?")) {
       await deleteDoc(doc(db, "announcements", announcementId));
@@ -341,70 +475,139 @@ export default function AdminPage() {
   };
 
   return (
-    <section className="space-y-6">
-      <header className="panel p-6">
+    <section className="space-y-6 p-4 sm:p-6 lg:p-8 bg-[#0F282F] min-h-screen text-[#F2EDEC]">
+      <header className="panel p-6 rounded-2xl border border-[#084D58]/40">
         <p className="status-pill">Terminal Console</p>
         <h1 className="mt-2 font-heading text-4xl text-[#f7f0e8]">{t("Admin Controls")}</h1>
       </header>
 
-      <article className="panel p-6 space-y-4">
-        <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <input value={targetInput} onChange={(e) => setTargetInput(e.target.value)} type="number" placeholder="Target Peserta" className="rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-[#F2EDEC]" />
-          <input value={briefingInput} onChange={(e) => setBriefingInput(e.target.value)} placeholder="Latest Briefing Text" className="rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-[#F2EDEC]" />
-          <input value={countdownInput} onChange={(e) => setCountdownInput(e.target.value)} placeholder="Countdown Text" className="rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-[#F2EDEC]" />
-          <input value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} placeholder="Today Schedule Text" className="rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-[#F2EDEC]" />
+      {/* D.4: NOTIFIKASI FEEDBACK ADMIN KINI BERDIRI TEGAK DI PALING ATAS PANEL */}
+      {adminMessage && (
+        <div className="panel p-4 border border-[#D5C757]/40 bg-[#D5C757]/10 rounded-xl text-center font-mono text-xs text-[#D5C757] animate-revealUp">
+          🔔 SYSTEM FEEDBACK: {adminMessage}
         </div>
-        <button onClick={saveGlobalConfig} className="cta-btn px-6 py-2 text-xs uppercase">Deploy System Config</button>
+      )}
+
+      {/* GLOBAL CONFIG & INDIVIDUAL TIME MANAGER */}
+      <article className="panel p-6 space-y-4 rounded-2xl border border-[#084D58]/30">
+        <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config & Infinite Deadlines</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="text-xs text-[#aaa391]">Target Total Quota Peserta</span>
+            <input value={targetInput} onChange={(e) => setTargetInput(e.target.value)} type="number" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-[#aaa391]">Latest Briefing Text</span>
+            <input value={briefingInput} onChange={(e) => setBriefingInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-[#aaa391]">Countdown Text</span>
+            <input value={countdownInput} onChange={(e) => setCountdownInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-[#aaa391]">Today Schedule Text</span>
+            <input value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+          </label>
+        </div>
+
+        {/* Poin 4: Panel Input Gates Fleksibel Bertipe Tunggal Bersama Dropdown Pilihan Hari */}
+        <div className="border-t border-white/10 pt-4 space-y-3">
+          <div className="grid gap-4 sm:grid-cols-4 items-end bg-black/20 p-4 rounded-xl border border-white/5">
+            <label className="block space-y-1">
+              <span className="text-xs text-[#D5C757] font-bold">Pilih Hari Yang Ingin Diatur:</span>
+              <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2 rounded font-medium cursor-pointer">
+                <option value="day_1">Day 1 - Opening & Synch</option>
+                <option value="day_2">Day 2 - Core Operations</option>
+                <option value="day_3">Day 3 - Exploration</option>
+                <option value="day_4">Day 4 - Final Closing</option>
+                <option value="day_5">Day 5 - Extra Session</option>
+                <option value="day_6">Day 6 - Backup Timeline</option>
+              </select>
+            </label>
+            <label className="block space-y-1"><span className="text-[11px] text-[#aaa391]">H-1 Close Gate</span><input type="datetime-local" value={currentH1Deadline} onChange={(e) => setCurrentH1Deadline(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-1.5 rounded font-mono" /></label>
+            <label className="block space-y-1"><span className="text-[11px] text-[#aaa391]">Check-In Close Gate</span><input type="datetime-local" value={currentAwalDeadline} onChange={(e) => setCurrentAwalDeadline(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-1.5 rounded font-mono" /></label>
+            <label className="block space-y-1"><span className="text-[11px] text-[#aaa391]">Check-Out Close Gate</span><input type="datetime-local" value={currentAkhirDeadline} onChange={(e) => setCurrentAkhirDeadline(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-1.5 rounded font-mono" /></label>
+          </div>
+        </div>
+
+        <button onClick={saveGlobalConfig} className="cta-btn px-6 py-2 text-xs uppercase font-bold">Deploy Config Parameters</button>
       </article>
 
+      {/* TASKS MANAGEMENT MODUL (SUPPORT EDIT & CREATE) */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <article className="panel p-5 space-y-3">
-          <h2 className="font-heading text-2xl text-[#f7f0e8]">{t("Task Management")}</h2>
-          <input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder={t("Task Title")} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#F2EDEC] outline-none" />
-          <textarea value={newTaskDetail} onChange={(e) => setNewTaskDetail(e.target.value)} placeholder={t("Task Details")} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#F2EDEC] outline-none" rows={3} />
-          <input value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} placeholder="Deadline Timeline Mapping" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#F2EDEC] outline-none" />
-          <div className="pt-2">
+        <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
+          <h2 className="font-heading text-2xl text-[#f7f0e8]">{editingTaskId ? "✏️ Edit Mission Task" : t("Task Management")}</h2>
+          <input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Task Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" />
+          <textarea value={newTaskDetail} onChange={(e) => setNewTaskDetail(e.target.value)} placeholder="Task Details" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" rows={3} />
+          
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block space-y-1">
+              <span className="text-[11px] text-[#aaa391]">Display Timeline Teks</span>
+              <input value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} placeholder="Day 3 - 20:00" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white" />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[11px] text-[#CE4A2D] font-semibold">ISO Gate Close Validator</span>
+              <input type="datetime-local" value={newTaskIsoDeadline} onChange={(e) => setNewTaskIsoDeadline(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono outline-none" />
+            </label>
+          </div>
+
+          <div className="pt-1">
             <label className="block text-xs text-[#D5C757] mb-1">📄 {t("Task File (PDF/DOC)")}</label>
             <input type="file" onChange={(e) => setTaskFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
           </div>
-          <button onClick={addTask} disabled={isCreatingTask} className="cta-btn w-full py-2.5 text-xs uppercase">{isCreatingTask ? "Creating..." : "Create Task"}</button>
+          
+          <div className="flex gap-2">
+            <button onClick={handleSaveTaskAction} disabled={isCreatingTask} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingTaskId ? "Update Mission" : "Deploy Mission"}</button>
+            {editingTaskId && <button type="button" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); }} className="nav-chip text-xs">Batal</button>}
+          </div>
           
           <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
-            {tasks.map((t) => (
-              <div key={t.id} className="p-3 bg-black/15 border border-white/10 rounded-xl flex justify-between items-center">
-                <span className="text-xs font-medium text-[#F2EDEC]">{t.taskId} - {t.title}</span>
-                <button onClick={() => deleteTask(t.taskId)} className="text-xs text-[#CE4A2D] font-bold">Delete</button>
+            {tasks.map((tk) => (
+              <div key={tk.id} className="p-3 bg-black/15 border border-white/10 rounded-xl flex justify-between items-center text-xs">
+                <span className="font-medium text-[#F2EDEC] truncate max-w-[200px]">{tk.taskId} - {tk.title}</span>
+                <div className="flex gap-3">
+                  <button onClick={() => { setEditingTaskId(tk.id); setNewTaskTitle(tk.title); setNewTaskDetail(tk.detail); setNewTaskDeadline(tk.deadline); setNewTaskIsoDeadline(tk.isoDeadline || ""); }} className="text-teal-400 font-bold">Edit</button>
+                  <button onClick={() => deleteTask(tk.id)} className="text-[#CE4A2D] font-bold">Delete</button>
+                </div>
               </div>
             ))}
           </div>
         </article>
 
-        <article className="panel p-5 space-y-3">
-          <h2 className="font-heading text-2xl text-[#D5C757]">Handbook Upload Center</h2>
-          <input value={newHandbookTitle} onChange={(e) => setNewHandbookTitle(e.target.value)} placeholder="Handbook Document Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#F2EDEC] outline-none" />
+        {/* HANDBOOK MODUL (SUPPORT EDIT & CREATE) */}
+        <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
+          <h2 className="font-heading text-2xl text-[#D5C757]">{editingHandbookId ? "✏️ Edit Handbook Title" : "📘 Handbook Upload Center"}</h2>
+          <input value={newHandbookTitle} onChange={(e) => setNewHandbookTitle(e.target.value)} placeholder="Handbook Document Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" />
           <div className="pt-2">
-            <label className="block text-xs text-[#D5C757] mb-1">📘 File Handbook (Wajib PDF/DOCX)</label>
+            <label className="block text-xs text-[#D5C757] mb-1">📘 File Handbook (PDF/DOCX)</label>
             <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setHandbookDocFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
           </div>
-          <button onClick={handleUploadHandbook} disabled={isUploadingHandbook} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{isUploadingHandbook ? "Uploading..." : "Inject Handbook Document"}</button>
+          
+          <div className="flex gap-2">
+            <button onClick={handleSaveHandbookAction} disabled={isUploadingHandbook} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingHandbookId ? "Update Document" : "Inject Document"}</button>
+            {editingHandbookId && <button type="button" onClick={() => { setEditingHandbookId(null); setNewHandbookTitle(""); }} className="nav-chip text-xs">Batal</button>}
+          </div>
           
           <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
             {handbooks.map((hb) => (
-              <div key={hb.id} className="p-3 bg-black/15 border border-white/10 rounded-xl flex justify-between items-center">
-                <span className="text-xs text-[#F2EDEC] truncate max-w-[200px]">{hb.title}</span>
-                <button onClick={() => deleteHandbookAction(hb.id)} className="text-xs text-[#CE4A2D] font-bold">Delete</button>
+              <div key={hb.id} className="p-3 bg-black/15 border border-white/10 rounded-xl flex justify-between items-center text-xs">
+                <span className="text-[#F2EDEC] truncate max-w-[200px]">{hb.title}</span>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => { setEditingHandbookId(hb.id); setNewHandbookTitle(hb.title); }} className="text-teal-400 font-bold">Edit</button>
+                  <button onClick={() => deleteHandbookAction(hb.id)} className="text-xs text-[#CE4A2D] font-bold">Delete</button>
+                </div>
               </div>
             ))}
           </div>
         </article>
       </div>
 
+      {/* PROMPTS & ANNOUNCEMENTS FEED MANAGER */}
       <div className="grid gap-4 xl:grid-cols-2">
-        <article className="panel p-5 space-y-3">
-          <h2 className="font-heading text-2xl text-[#f7f0e8]">{t("Reflection Prompts")}</h2>
+        <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
+          <h2 className="font-heading text-2xl text-white">{t("Reflection Prompts")}</h2>
           <div className="mt-4 flex gap-2">
-            <input value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#f7f0e8] outline-none" placeholder={t("Add new prompt")} />
+            <input value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" placeholder={t("Add new prompt")} />
             <button onClick={addPrompt} className="cta-btn px-4 py-2 text-xs">{t("Add")}</button>
           </div>
           <button onClick={seedDefaultPrompts} className="nav-chip mt-3 text-xs">{t("Seed default prompts")}</button>
@@ -415,53 +618,105 @@ export default function AdminPage() {
           </div>
         </article>
 
-        <article className="panel p-5 space-y-4">
-          <h2 className="font-heading text-2xl text-[#f7f0e8]">{t("Announcements & Dashboard Info")}</h2>
-          <input value={newAnnouncementTitle} onChange={(e) => setNewAnnouncementTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#f7f0e8] outline-none" />
-          <textarea value={newAnnouncementContent} onChange={(e) => setNewAnnouncementContent(e.target.value)} placeholder="Content" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#f7f0e8] outline-none" rows={3} />
-          <div className="flex gap-2 items-center">
-            <input value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Link Label" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-1 text-xs text-[#f7f0e8]" />
-            <input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="Link URL" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-1 text-xs text-[#f7f0e8]" />
-            <button onClick={addLink} className="nav-chip text-xs shrink-0">Attach</button>
+        <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
+          <h2 className="font-heading text-2xl text-white">{editingAnnId ? "✏️ Edit Broadcast" : "📢 Broadcast Feeds"}</h2>
+          
+          {/* Poin 6: Kotak Panduan Tulis Simbol Markdown */}
+          <div className="bg-black/30 border border-[#D5C757]/30 p-2 rounded-lg text-[10px] font-mono text-[#D5C757] space-y-0.5">
+            <p className="font-bold">📋 NOTASI MARKDOWN OPERASIONAL BARU:</p>
+            <p>• Ketik <span className="text-white">*teks tebal*</span> ➔ <b>Tebal</b></p>
+            <p>• Ketik <span className="text-white">_teks miring_</span> ➔ <i>Miring</i></p>
+            <p>• Ketik <span className="text-white">~teks garis bawah~</span> ➔ <u>Garis Bawah</u></p>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {newAnnouncementLinks.map((link, idx) => (
-              <span key={idx} className="status-pill text-[10px]">{link.label} <button type="button" onClick={() => removeLink(idx)} className="text-[#CE4A2D] ml-1 font-bold">x</button></span>
-            ))}
+
+          <input value={newAnnouncementTitle} onChange={(e) => setNewAnnouncementTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white" />
+          <textarea value={newAnnouncementContent} onChange={(e) => setNewAnnouncementContent(e.target.value)} placeholder="Ketik isi body pengumuman pakai simbol di atas..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono" rows={3} />
+          <input type="file" accept="image/*,application/pdf" onChange={(e) => setAnnouncementPosterFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
+          <div className="flex gap-2"><input value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Label" className="w-1/3 bg-[#0F282F] p-1 text-xs text-white" /><input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="URL" className="w-2/3 bg-[#0F282F] p-1 text-xs text-white" /><button type="button" onClick={addLink} className="nav-chip text-xs">Attach</button></div>
+          
+          <div className="flex gap-2">
+            <button onClick={handleSaveAnnouncementAction} className="cta-btn w-full py-2 text-xs uppercase font-bold">{editingAnnId ? "Update Broadcast" : "Publish Broadcast"}</button>
+            {editingAnnId && <button type="button" onClick={() => { setEditingAnnId(null); setNewAnnouncementTitle(""); setNewAnnouncementContent(""); setNewAnnouncementLinks([]); }} className="nav-chip text-xs">Batal</button>}
           </div>
-          <button onClick={addAnnouncement} className="cta-btn w-full py-2 text-xs uppercase">Broadcast Announcement</button>
+
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {announcements.map((a) => (
-              <div key={a.id} className="p-2 bg-black/10 border border-white/5 rounded-lg flex justify-between items-center text-xs">
-                <span className="text-[#F2EDEC] truncate max-w-[200px]">{a.title}</span>
-                <button onClick={() => deleteAnnouncement(a.id)} className="text-[#CE4A2D] font-bold">Delete</button>
+              <div key={a.id} className="p-2 bg-black/10 border border-white/5 rounded-lg flex justify-between items-center text-xs text-white">
+                <span className="truncate max-w-[200px]">{a.title}</span>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => { setEditingAnnId(a.id); setNewAnnouncementTitle(a.title); setNewAnnouncementContent(a.content); setNewAnnouncementLinks(a.links || []); }} className="text-teal-400 font-bold">Edit</button>
+                  <button onClick={() => deleteAnnouncement(a.id)} className="text-[#CE4A2D] font-bold">Delete</button>
+                </div>
               </div>
             ))}
           </div>
         </article>
       </div>
 
-      <article className="panel p-5">
-        <h2 className="font-heading text-2xl text-[#f7f0e8]">{t("Submissions & Grading")}</h2>
-        <div className="mt-4 space-y-3 max-h-60 overflow-y-auto">
+      {/* TASK LOG SUBMISSIONS SUB-PANEL */}
+      <article className="panel p-5 rounded-2xl border border-[#084D58]/30">
+        <div className="flex justify-between border-b border-white/10 pb-2 mb-2">
+          <h2 className="font-heading text-xl text-white">{t("Submissions & Grading")}</h2>
+          <button type="button" onClick={downloadSubmissionsCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Submissions CSV</button>
+        </div>
+        <div className="space-y-2 max-h-40 overflow-y-auto text-xs text-white">
           {submissions.length > 0 ? (
             submissions.map((sub) => (
-              <div key={sub.id} className="p-4 bg-black/20 rounded-xl border border-white/15 flex justify-between items-center gap-4">
+              <div key={sub.id} className="p-3 bg-black/20 rounded-xl border border-white/5 flex justify-between items-center">
                 <div>
-                  <p className="text-xs font-bold text-[#D5C757]">{sub.taskId} • {sub.taskTitle}</p>
-                  <p className="text-xs text-[#F2EDEC] mt-1">Note: {sub.note || "-"}</p>
-                  {sub.fileUrl && <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-teal-400 underline mt-1 block">View Document Artifact</a>}
+                  <p className="font-bold text-[#D5C757]">{sub.taskId} • {sub.taskTitle}</p>
+                  <p className="font-mono text-[10px] text-[#aaa391] mt-0.5">NIM Peserta: {sub.nim}</p>
                 </div>
                 <span className="status-pill text-[10px]">Received</span>
               </div>
             ))
           ) : (
-            <p className="text-xs text-[#aaa391]">{t("No submissions yet.")}</p>
+            <p className="p-2 text-xs italic text-[#aaa391]">Belum ada penugasan maba yang masuk ke database.</p>
           )}
         </div>
       </article>
 
-      {adminMessage && <p className="panel p-3 text-xs text-[#D5C757] font-mono text-center">{adminMessage}</p>}
+      {/* MASTER LOG TABULAR ATTENDANCE LOG VIEWER */}
+      <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
+        <div className="flex justify-between items-center border-b border-white/10 pb-3 flex-wrap gap-2">
+          <h2 className="font-heading text-xl text-teal-400">📊 Live Participant Attendance Submission Viewer</h2>
+          <div className="flex gap-2 items-center">
+            <button type="button" onClick={downloadAttendanceCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Filtered Attendance CSV</button>
+            <select value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
+              <option value="day_1">Day 1</option> <option value="day_2">Day 2</option>
+              <option value="day_3">Day 3</option> <option value="day_4">Day 4</option>
+              <option value="day_5">Day 5</option> <option value="day_6">Day 6</option>
+            </select>
+            <select value={attendanceTabFilter} onChange={(e) => setAttendanceTabFilter(e.target.value as any)} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
+              <option value="awal">Check-In</option> <option value="akhir">Check-Out</option> <option value="h1">H-1 Medis</option>
+            </select>
+          </div>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/10 text-xs text-white shadow-inner">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/5 text-[#D5C757] border-b border-white/10">
+                <th className="p-3">NIM Data Token</th>
+                <th className="p-3">Nama Peserta Sesuai Sistem</th>
+                <th className="p-3">Status Indeks Kehadiran</th>
+              </tr>
+            </thead>
+            <tbody>
+              {adminAttendanceRecords.length > 0 ? (
+                adminAttendanceRecords.map((row, idx) => (
+                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition">
+                    <td className="p-3 font-mono text-teal-400 font-bold">{row.nim}</td>
+                    <td className="p-3 font-medium">{row.fullName}</td>
+                    <td className="p-3"><span className="px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-bold">{row.status}</span></td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan={3} className="p-4 text-center text-[#aaa391] italic">Belum ada sirkulasi paket log absensi maba masuk pada parameter filter ini.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
   );
 }
@@ -469,8 +724,8 @@ export default function AdminPage() {
 function PromptEditor({ id, text, order, onSave, onDelete }: { id: string; text: string; order: number; onSave: (id: string, text: string, order: number) => Promise<void>; onDelete: (id: string) => Promise<void>; }) {
   const [draftText, setDraftText] = useState(text);
   return (
-    <div className="rounded-xl border border-white/10 bg-black/15 p-3 flex gap-2 items-center">
-      <input value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full bg-[#0F282F]/50 border border-white/10 rounded-lg px-2 py-1 text-xs text-[#f7f0e8]" />
+    <div className="rounded-xl border border-white/10 bg-black/15 p-2 flex gap-2 items-center animate-revealUp">
+      <input value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full bg-[#0F282F]/50 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none" />
       <button type="button" onClick={() => onSave(id, draftText.trim(), order)} className="text-xs text-[#D5C757] font-bold">Save</button>
       <button type="button" onClick={() => onDelete(id)} className="text-xs text-[#CE4A2D] font-bold">Delete</button>
     </div>
