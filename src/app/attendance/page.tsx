@@ -57,7 +57,6 @@ export default function AttendancePage() {
   const [activeTab, setActiveTab] = useState<"dday_awal" | "dday_akhir" | "h1">("dday_awal");
   const [selectedDay, setSelectedDay] = useState<string>("day_1");
 
-  // Input state penampung data formulir utama maba
   const [fullName, setFullName] = useState<string>("");
   const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
@@ -66,14 +65,12 @@ export default function AttendancePage() {
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [feedbackText, setFeedbackText] = useState<string>("");
 
-  // Input state penampung data skrining medis lapangan maba
   const [condition, setCondition] = useState<string>("Tidak sakit");
   const [illnessName, setIllnessName] = useState<string>("");
   const [symptoms, setSymptoms] = useState<string>("");
   const [tookMedicine, setTookMedicine] = useState<string>("Belum");
   const [medicineName, setMedicineName] = useState<string>("");
 
-  // Storage array internal penampung data kalkulasi real-time metrics
   const [awalRecords, setAwalRecords] = useState<AttendanceAwalStructure[]>([]);
   const [akhirRecords, setFeedbackRecords] = useState<AttendanceAkhirStructure[]>([]);
   const [h1Records, setH1Records] = useState<H1ConfirmationStructure[]>([]);
@@ -132,7 +129,6 @@ export default function AttendancePage() {
     };
   }, [user, selectedDay]);
 
-  // Poin 4: Pencocokan Gerbang Close Gate Mengikuti Parameter Dropdown Target Hari yang Dipilih
   const isGateClosed = useMemo(() => {
     if (!firebaseMeta) return false;
     let fieldKey = `${selectedDay}_dday_awal_deadline`;
@@ -174,7 +170,6 @@ export default function AttendancePage() {
     if (isGateClosed) return;
     if (!fullName.trim() || !studentNIM) return;
 
-    // Fitur B: Menolak Pengiriman Jika Berkas Bukti Foto Masih Kosong
     if (!evidenceFile) {
       setSaveMessage("Gagal: Anda diwajibkan untuk mengunggah berkas foto bukti dokumentasi fisik kehadiran sebelum melakukan submit!");
       return;
@@ -266,38 +261,38 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F282F] p-4 sm:p-6 lg:p-8 text-[#F2EDEC] relative overflow-hidden selection:bg-[#D5C757]/30">
+    <div className="min-h-screen bg-[#0F282F] p-4 sm:p-6 lg:p-8 text-[#F2EDEC] relative overflow-x-hidden selection:bg-[#D5C757]/30 w-full max-w-full">
       {/* GLOWING AMBIENT DECORATIVE SCATTER BLODS */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#084D58]/10 blur-[120px] pointer-events-none z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#D5C757]/5 blur-[100px] pointer-events-none z-0" />
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#084D58]/10 blur-[120px] pointer-events-none z-0 hidden sm:block" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#D5C757]/5 blur-[100px] pointer-events-none z-0 hidden sm:block" />
 
-      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
+      {/* WRAPPER UTAMA */}
+      <div className="max-w-7xl mx-auto space-y-6 relative z-10 w-full min-w-0">
         
-        {/* PANEL HEADER STRUKTUR PANJANG ASLI */}
-        <header className="panel rounded-3xl border border-[#084D58]/40 bg-[#0F282F]/80 p-6 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6 animate-revealDown">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D5C757]/30 bg-[#D5C757]/10 text-[#D5C757] text-[10px] uppercase font-bold tracking-widest">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D5C757] animate-ping" />
+        {/* PANEL HEADER */}
+        <header className="panel rounded-3xl border border-[#084D58]/40 bg-[#0F282F]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6 w-full min-w-0">
+          <div className="space-y-2 w-full max-w-xl">
+            <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-full border border-[#D5C757]/30 bg-[#D5C757]/10 text-[#D5C757] text-[10px] uppercase font-bold tracking-widest break-words text-center sm:text-left">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D5C757] animate-ping shrink-0" />
               Central Telemetry Presence Station
             </div>
-            <h1 className="font-heading text-4xl sm:text-5xl tracking-wider text-[#F2EDEC] leading-tight">
+            <h1 className="font-heading text-3xl sm:text-5xl tracking-wider text-[#F2EDEC] leading-tight break-words whitespace-normal">
               {t("Operations Presence Hub")}
             </h1>
-            <p className="text-xs text-[#aaa391] leading-relaxed">
-              Selamat datang di stasiun pencatatan log kehadiran terpadu. Pastikan data koordinat identitas NIM, nama, berkas digital surat dokumentasi lapangan, dan form evaluasi terisi secara akurat sebelum gerbang batas waktu pengumpulan dikunci otomatis oleh sistem administrator pusat.
+            <p className="text-[11px] sm:text-xs text-[#aaa391] leading-relaxed break-words whitespace-normal">
+              Selamat datang di stasiun pencatatan log kehadiran terpadu. Pastikan identitas dan kelengkapan dokumen terisi akurat sebelum gerbang batas waktu pengumpulan dikunci otomatis.
             </p>
           </div>
 
-          {/* DROPDOWN PEMILIHAN TARGET ACARA */}
-          <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0">
-            <label className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757]"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
+          <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0 min-w-0">
+            <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
               Target Hari Operasional:
             </label>
             <select
               value={selectedDay}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedDay(e.target.value); setSaveMessage(""); }}
-              className="w-full rounded-xl border border-[#084D58]/60 bg-[#0F282F] px-3 py-2.5 text-xs font-semibold text-[#F2EDEC] outline-none focus:border-[#D5C757] focus:ring-1 focus:ring-[#D5C757] transition cursor-pointer"
+              className="w-full rounded-xl border border-[#084D58]/60 bg-[#0F282F] px-3 py-2.5 text-xs font-semibold text-[#F2EDEC] outline-none focus:border-[#D5C757] transition cursor-pointer text-ellipsis overflow-hidden break-words whitespace-normal"
             >
               {osjurDays.map((day) => (
                 <option key={day.value} value={day.value} className="bg-[#0F282F] text-[#F2EDEC]">
@@ -308,76 +303,80 @@ export default function AttendancePage() {
           </div>
         </header>
 
-        {/* TAB BUTTON NAVIGATION DESIGN ASLI PANJANG */}
-        <nav className="flex border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 rounded-2xl gap-1 overflow-x-auto shadow-inner backdrop-blur-sm">
+        {/* TAB BUTTON NAVIGATION (PERBAIKAN OVERLAP DENGAN SHRINK-0) */}
+        <nav className="flex flex-nowrap border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
           <button
             type="button"
             onClick={() => { setActiveTab("dday_awal"); setSaveMessage(""); }}
-            className={`flex items-center gap-2 px-5 py-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_awal" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/20 transform scale-[1.02]" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-colors duration-200 ${activeTab === "dday_awal" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/30" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
           >
-            <svg width="16" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 22H22L12 2ZM12 6L18.8 19.5H5.2L12 6ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M12 2L2 22H22L12 2ZM12 6L18.8 19.5H5.2L12 6ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
             🚀 Check-In (Absen Awal)
           </button>
           <button
             type="button"
             onClick={() => { setActiveTab("dday_akhir"); setSaveMessage(""); }}
-            className={`flex items-center gap-2 px-5 py-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_akhir" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/20 transform scale-[1.02]" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-colors duration-200 ${activeTab === "dday_akhir" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/30" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
           >
-            <svg width="16" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V7.5L14.5 2ZM18 20H6V4H13.5V8.5H18V20ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M14.5 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V7.5L14.5 2ZM18 20H6V4H13.5V8.5H18V20ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
             🏁 Check-Out (Feedback Akhir)
           </button>
           <button
             type="button"
             onClick={() => { setActiveTab("h1"); setSaveMessage(""); }}
-            className={`flex items-center gap-2 px-5 py-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "h1" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/20 transform scale-[1.02]" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-colors duration-200 ${activeTab === "h1" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/30" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6V20C3.01 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4H19ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>
-            📅 H-1 Confirmation & Skrining Medis
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6V20C3.01 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4H19ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>
+            📅 H-1 Confirmation & Medis
           </button>
         </nav>
 
-        {/* WARNING CLOSE GATE TIMELINE BANNER */}
+        {/* WARNING CLOSE GATE TIMELINE BANNER (PERBAIKAN OVERFLOW TEKS KEPANJANGAN) */}
         {isGateClosed && (
-          <div className="col-span-full panel rounded-2xl border border-[#CE4A2D]/50 bg-[#CE4A2D]/10 p-4 text-center shadow-xl animate-pulse">
-            <p className="text-sm font-bold text-[#CE4A2D] uppercase tracking-widest flex items-center justify-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 22 12 22ZM13 16H11V14H13V16ZM13 12H11V7H13V12Z" fill="currentColor"/></svg>
-              ACCESS RESTRICTION ACTUATED: GATE CLOSED
+          <div className="col-span-full panel rounded-2xl border border-[#CE4A2D]/50 bg-[#CE4A2D]/10 p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 text-[#CE4A2D]"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 22 12 22ZM13 16H11V14H13V16ZM13 12H11V7H13V12Z" fill="currentColor"/></svg>
+              <span className="text-xs sm:text-sm font-bold text-[#CE4A2D] uppercase tracking-wider text-center break-words whitespace-normal">
+                ACCESS RESTRICTION ACTUATED: GATE CLOSED
+              </span>
+            </div>
+            <p className="text-[10px] sm:text-xs text-[#aaa391] mt-2 sm:mt-1 break-words whitespace-normal px-2">
+              Sesi formulir pengumpulan log digital untuk hari operasional ini telah habis masa berlakunya.
             </p>
-            <p className="text-[11px] text-[#aaa391] mt-0.5">Sesi formulir pengumpulan log digital untuk hari operasional ini telah habis masa berlakunya.</p>
           </div>
         )}
 
         {/* LAYOUT BODY FORM GRID */}
-        <div className="grid gap-6 xl:grid-cols-[1fr_340px] col-span-full items-start">
+        <div className="grid gap-6 lg:gap-8 xl:grid-cols-[1fr_340px] col-span-full items-start w-full min-w-0">
           
           {/* TAB AREA FORMULIR 1: DDAY CHECK-IN (AWAL) */}
           {activeTab === "dday_awal" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm">
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="font-heading text-2xl tracking-wide text-[#F2EDEC]">Form Absensi Check-In Kehadiran</h2>
-                  <p className="text-[11px] text-[#aaa391] mt-0.5">Lakukan perekaman data kehadiran saat memasuki area ring utama pelaksanaan.</p>
+            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0">
+              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Absensi Check-In</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lakukan perekaman data kehadiran saat memasuki area ring utama.</p>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
+                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757] text-sm sm:text-base">
                   🚀
                 </div>
               </div>
 
               <form onSubmit={handleDDayAwalSubmit} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block space-y-1">
-                    <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
-                    <input type="text" value={studentNIM} disabled className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
+                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM (Otomatis)</span>
+                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
                   </label>
-                  <label className="block space-y-1">
-                    <span className="text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Ketik nama lengkap maba..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] focus:ring-1 focus:ring-[#D5C757] transition" required />
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
-                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
+                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
                     <option value="hadir">Hadir Tepat Waktu Di Ring Utama</option>
                     <option value="menyusul">Hadir Menyusul / Mengalami Keterlambatan</option>
                     <option value="meninggalkan">Izin Meninggalkan Sesi Sebelum Selesai</option>
@@ -386,148 +385,152 @@ export default function AttendancePage() {
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan Justifikasi / Keterangan Bukti</span>
-                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed} placeholder="Isi '-' jika hadir normal. Sebutkan detail alasan apabila Anda mengalami keterlambatan atau perizinan khusus..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body" rows={3} />
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan Justifikasi / Keterangan Bukti</span>
+                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
                 </label>
 
-                {/* Fitur B: Elemen Wajib Unggah Lampiran Berkas Bukti Kehadiran Maba */}
-                <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner">
-                  <label className="block text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#CE4A2D]" />
-                    🖼️ Berkas File Bukti Kehadiran / Surat Izin (MUTLAK WAJIB DIISI)
+                {/* FILE INPUT PERBAIKAN OVERFLOW TEKS NAMA FILE PANJANG */}
+                <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
+                  <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                    <span>🖼️ Bukti Dokumentasi Fisik (MUTLAK WAJIB DIISI)</span>
                   </label>
-                  <p className="text-[10px] text-[#aaa391] font-medium">Form absensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi kegiatan atau scan surat izin resmi!</p>
-                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={isGateClosed} className="w-full text-xs text-[#aaa391] cursor-pointer mt-2 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-[#084D58] file:text-[#D5C757] file:hover:bg-[#084D58]/80 file:transition" />
+                  <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form absensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi kegiatan atau scan surat izin resmi!</p>
+                  
+                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={isGateClosed} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#084D58] file:text-[#D5C757] file:hover:bg-[#084D58]/80 file:transition" />
                 </div>
 
-                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3 text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">Submit Presensi Awal</button>
+                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer break-words whitespace-normal">Submit Presensi Awal</button>
               </form>
             </article>
           )}
 
           {/* TAB AREA FORMULIR 2: DDAY CHECK-OUT (AKHIR) */}
           {activeTab === "dday_akhir" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm">
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="font-heading text-2xl tracking-wide text-[#F2EDEC]">Form Absensi Check-Out & Evaluasi</h2>
-                  <p className="text-[11px] text-[#aaa391] mt-0.5">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik maba harian.</p>
+            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0">
+              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Absensi Check-Out & Evaluasi</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik maba harian.</p>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
+                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
                   🏁
                 </div>
               </div>
 
               <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block space-y-1">
-                    <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
-                    <input type="text" value={studentNIM} disabled className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-white font-mono font-bold opacity-40 outline-none" />
+                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
+                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
-                  <label className="block space-y-1">
-                    <span className="text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap maba..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-xs text-white outline-none focus:border-[#D5C757]" required />
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
-                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-xs text-white outline-none cursor-pointer">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
+                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                     <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
                     <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
                   </select>
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-xs text-[#D5C757] font-bold uppercase tracking-wider flex items-center gap-1">💬 Lembar Feedback, Evaluasi, & Insight Esensi Hari Ini</span>
-                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed} placeholder="Tuliskan kritik, saran konstruktif, hambatan kendala lapangan, atau intisari pemahaman esensi materi yang Anda petik hari ini sebagai acuan rapat evaluasi panitia pelaksana..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none focus:border-[#D5C757] transition font-body" rows={4} required />
+                  <span className="text-[11px] sm:text-xs text-[#D5C757] font-bold uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
+                    <span className="mt-0.5">💬</span> 
+                    <span>Lembar Feedback, Evaluasi, & Insight Esensi Hari Ini</span>
+                  </span>
+                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed} placeholder="Tuliskan kritik, saran, hambatan lapangan, atau intisari pemahaman materi yang Anda petik hari ini..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
                 </label>
 
-                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3 text-xs uppercase font-bold tracking-wider cursor-pointer">Submit Check-Out</button>
+                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal">Submit Check-Out</button>
               </form>
             </article>
           )}
 
           {/* TAB AREA FORMULIR 3: H-1 CONFIRMATION & HEALTH DATA */}
           {activeTab === "h1" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm">
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between">
-                <div>
-                  <h2 className="font-heading text-2xl tracking-wide text-[#F2EDEC]">Form Kesiapan & Skrining Riwayat Medis</h2>
-                  <p className="text-[11px] text-[#aaa391] mt-0.5">Lembar pelaporan riwayat kondisi fisik vital untuk pemetaan logistik tim medis lapangan.</p>
+            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0">
+              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Kesiapan & Skrining Riwayat Medis</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi fisik vital untuk pemetaan logistik tim medis lapangan.</p>
                 </div>
-                <div className="h-9 w-9 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
+                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
                   📅
                 </div>
               </div>
 
               <form onSubmit={handleH1Submit} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block space-y-1">
-                    <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
-                    <input type="text" value={studentNIM} disabled className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white font-mono font-bold opacity-40 outline-none" />
+                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi</span>
+                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
-                  <label className="block space-y-1">
-                    <span className="text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-xs text-white outline-none focus:border-[#D5C757]" required />
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kesiapan Kehadiran Besok</span>
-                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-xs text-white outline-none cursor-pointer">
-                    <option value="hadir tepat waktu">Hadir Tepat Waktu Sesuai Garis Komando Pagi</option>
-                    <option value="hadir menyusul">Hadir Menyusul Dikarenakan Tabrakan Kelas Akademik</option>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kesiapan Hadir</span>
+                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                    <option value="hadir tepat waktu">Hadir Tepat Waktu Sesuai Instruksi Pagi</option>
+                    <option value="hadir menyusul">Hadir Menyusul (Tabrakan Jadwal Akademik)</option>
                     <option value="izin meninggalkan">Izin Meninggalkan Lapangan Lebih Cepat</option>
-                    <option value="tidak hadir">Mutlak Berhalangan Hadir (Sakit Keras/Izin Khusus)</option>
+                    <option value="tidak hadir">Mutlak Berhalangan Hadir (Sakit Keras/Izin)</option>
                   </select>
                 </label>
 
                 {/* SEKTOR FORM SKRINING KESEHATAN PITA PUTIH */}
                 <div className="border-t border-[#084D58]/30 pt-4 space-y-3">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#D5C757]" />
-                      Sektor Skrining Medis Lapangan (Pita Putih Pemetaan)
-                    </p>
-                    <p className="text-[10px] text-[#aaa391]">Isi kondisi fisik riil Anda demi keselamatan darurat selama di lapangan operasional.</p>
+                  <div className="space-y-1">
+                    <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D5C757] shrink-0 mt-1 sm:mt-0.5" />
+                      <span>Sektor Skrining Medis Lapangan (Pita Putih)</span>
+                    </h3>
+                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi fisik riil Anda demi keselamatan darurat selama di lapangan operasional.</p>
                   </div>
 
                   <label className="block space-y-1">
-                    <span className="text-[11px] text-[#D7DCD5] font-medium">Bagaimana Kondisi Fisik Tubuh Anda Saat Ini?</span>
-                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer">
+                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Fisik Tubuh Saat Ini?</span>
+                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
                       <option value="Tidak sakit">Sehat Walafiat & Bugar Tubuh</option>
-                      <option value="Sedang sakit">Sedang Sakit / Kurang Sehat / Memiliki Riwayat Kronis</option>
+                      <option value="Sedang sakit">Sedang Sakit / Kurang Sehat / Ada Riwayat Kronis</option>
                     </select>
                   </label>
 
                   {/* KONDISIKAN SUB FORM INPUT MEDIS JIKA MEMILIH SEDANG SAKIT */}
                   {condition === "Sedang sakit" && (
-                    <div className="bg-black/30 border border-[#084D58]/40 p-4 rounded-2xl space-y-3 animate-revealUp shadow-inner">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-[10px] text-[#D5C757] uppercase font-bold">Diagnosa Sakit / Nama Penyakit?</span>
-                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={isGateClosed} placeholder="Asma, Vertigo, Mag Akut, Flu, Demam..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-xs text-white outline-none focus:border-[#D5C757]" required />
+                    <div className="bg-black/30 border border-[#084D58]/40 p-4 rounded-2xl space-y-4 animate-revealUp shadow-inner w-full min-w-0">
+                      <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
+                        <label className="block space-y-1 min-w-0">
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Diagnosa / Riwayat Penyakit?</span>
+                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={isGateClosed} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
-                        <label className="block space-y-1">
-                          <span className="text-[10px] text-[#D5C757] uppercase font-bold">Gejala Fisik yang Dirasakan?</span>
-                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={isGateClosed} placeholder="Nafas pendek, pusing berputar, mual lemas..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-xs text-white outline-none focus:border-[#D5C757]" required />
+                        <label className="block space-y-1 min-w-0">
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala Fisik Dirasakan?</span>
+                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={isGateClosed} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="block space-y-1">
-                          <span className="text-[10px] text-[#D5C757] uppercase font-bold">Apakah Sudah Mengonsumsi Obat?</span>
-                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2 text-xs text-white outline-none cursor-pointer">
-                            <option value="Belum">Belum / Tidak Mengonsumsi Obat</option>
-                            <option value="Sudah">Sudah Mengonsumsi Obat Medis</option>
+                      <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
+                        <label className="block space-y-1 min-w-0">
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Sedang Mengonsumsi Obat?</span>
+                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={isGateClosed} className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                            <option value="Belum">Belum / Tidak Konsumsi Obat</option>
+                            <option value="Sudah">Sudah Konsumsi Obat Medis</option>
                           </select>
                         </label>
                         
                         {tookMedicine === "Sudah" && (
-                          <label className="block space-y-1 animate-revealUp">
-                            <span className="text-[10px] text-[#D5C757] uppercase font-bold">Sebutkan Nama Obat yang Diminum:</span>
-                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={isGateClosed} placeholder="Ventolin inhaler, Antasida, Paracetamol..." className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <label className="block space-y-1 animate-revealUp min-w-0">
+                            <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Nama Obat Diminum:</span>
+                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={isGateClosed} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                           </label>
                         )}
                       </div>
@@ -535,45 +538,45 @@ export default function AttendancePage() {
                   )}
                 </div>
 
-                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3 text-xs uppercase font-bold tracking-wider cursor-pointer">Submit Konfirmasi H-1</button>
+                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal">Submit Konfirmasi H-1</button>
               </form>
             </article>
           )}
 
           {/* ASIDE LIVE TRACKING METRICS UNTUK TAB ACTIVE */}
-          <aside className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 space-y-4 shadow-2xl backdrop-blur-sm self-start">
+          <aside className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 space-y-4 shadow-2xl backdrop-blur-sm self-start w-full xl:w-80 min-w-0">
             <div className="border-b border-[#084D58]/30 pb-2">
-              <h3 className="font-heading text-xl text-[#D5C757] uppercase tracking-wider">Live Metrics Channel</h3>
-              <p className="text-[9px] font-mono text-[#aaa391] uppercase mt-0.5">Koleksi Log: {selectedDay.toUpperCase()}_{activeTab.toUpperCase()}</p>
+              <h3 className="font-heading text-lg sm:text-xl text-[#D5C757] uppercase tracking-wider break-words whitespace-normal leading-tight">Live Metrics Channel</h3>
+              <p className="text-[8px] sm:text-[9px] font-mono text-[#aaa391] uppercase mt-1 break-words whitespace-normal">Koleksi Log: {selectedDay}_{activeTab}</p>
             </div>
             
-            <div className="text-xs space-y-3 text-[#D7DCD5]">
+            <div className="text-[11px] sm:text-xs space-y-3 text-[#D7DCD5]">
               {activeTab === "dday_awal" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Hadir Normal:</span><span className="text-teal-400 font-bold font-mono">{filteredDDayAwalMetrics.hadir}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Terlambat/Menyusul:</span><span className="text-teal-400 font-bold font-mono">{filteredDDayAwalMetrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Izin Sesi Keluar:</span><span className="text-teal-400 font-bold font-mono">{filteredDDayAwalMetrics.meninggalkan}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Absen/Sakit:</span><span className="text-teal-400 font-bold font-mono">{filteredDDayAwalMetrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Normal:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.hadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Terlambat/Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.menyusul}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Keluar:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.meninggalkan}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Absen/Sakit:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.tidakHadir}</span></div>
                 </>
               )}
               {activeTab === "dday_akhir" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Checkout Sukses:</span><span className="text-teal-400 font-bold font-mono">{filteredDDayAkhirMetrics.hadir}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Meninggalkan Lapangan:</span><span className="text-teal-400 font-bold font-mono">{filteredDDayAkhirMetrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Checkout Sukses:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAkhirMetrics.hadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Keluar Lapangan:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAkhirMetrics.tidakHadir}</span></div>
                 </>
               )}
               {activeTab === "h1" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Estimasi Tepat Waktu:</span><span className="text-teal-400 font-bold font-mono">{filteredH1Metrics.tepatWaktu}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Hadir Menyusul Besok:</span><span className="text-teal-400 font-bold font-mono">{filteredH1Metrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Izin Sesi:</span><span className="text-teal-400 font-bold font-mono">{filteredH1Metrics.izin}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span>Absen Besok Pagi:</span><span className="text-teal-400 font-bold font-mono">{filteredH1Metrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Estimasi Tepat:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.menyusul}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Sesi:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Absen Besok:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
                 </>
               )}
               
-              <div className="pt-3 text-[10px] text-[#aaa391] border-t border-[#084D58]/40 flex justify-between items-center">
-                <span>Quota Target Maba:</span>
-                <span className="font-mono font-bold text-white bg-[#084D58]/50 px-2 py-0.5 rounded border border-[#084D58]">{expectedParticipants} Orang</span>
+              <div className="pt-3 text-[9px] sm:text-[10px] text-[#aaa391] border-t border-[#084D58]/40 flex justify-between items-center gap-2">
+                <span className="truncate">Quota Target Maba:</span>
+                <span className="font-mono font-bold text-white bg-[#084D58]/50 px-2 py-0.5 rounded border border-[#084D58] shrink-0">{expectedParticipants} Org</span>
               </div>
             </div>
           </aside>
