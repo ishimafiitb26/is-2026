@@ -300,14 +300,14 @@ export default function AttendancePage() {
               {t("Operations Presence Hub")}
             </h1>
             <p className="text-[11px] sm:text-xs text-[#aaa391] leading-relaxed break-words whitespace-normal">
-              Selamat datang di stasiun pencatatan log kehadiran terpadu. Pastikan identitas dan kelengkapan dokumen terisi akurat sebelum gerbang batas waktu pengumpulan dikunci otomatis.
+              Selamat datang! Pastikan presensi terisi sebelum batas waktu berakhir.
             </p>
           </div>
 
           <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0 min-w-0">
             <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
-              Target Hari Operasional Aktif:
+              Target Hari:
             </label>
             <div className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
               {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
@@ -353,7 +353,7 @@ export default function AttendancePage() {
               </span>
             </div>
             <p className="text-[10px] sm:text-xs text-[#aaa391] mt-2 sm:mt-1 break-words whitespace-normal px-2">
-              Sesi formulir pengumpulan log digital untuk hari operasional ini telah habis masa berlakunya.
+              Sesi presensi telah berakhir.
             </p>
           </div>
         )}
@@ -383,13 +383,13 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
                   <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
                     <option value="hadir">Hadir Tepat Waktu</option>
                     <option value="menyusul">Hadir Menyusul</option>
@@ -399,7 +399,7 @@ export default function AttendancePage() {
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan Justifikasi / Keterangan Bukti</span>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan / Keterangan Bukti</span>
                   <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
                 </label>
 
@@ -436,17 +436,17 @@ export default function AttendancePage() {
               <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM (Otomatis)</span>
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
                   <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                     <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
                     <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
@@ -456,9 +456,9 @@ export default function AttendancePage() {
                 <label className="block space-y-1">
                   <span className="text-[11px] sm:text-xs text-[#D5C757] font-bold uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
                     <span className="mt-0.5">💬</span> 
-                    <span>Lembar Feedback, Evaluasi, & Insight Esensi Hari Ini</span>
+                    <span>Feedback untuk Kesan, Pesan, dan Evaluasi DAY hari ini</span>
                   </span>
-                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed} placeholder="Tuliskan kritik, saran, hambatan lapangan, atau intisari pemahaman materi yang Anda petik hari ini..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
+                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed} placeholder="Tuliskan feedback berupa kesan, pesan, kritik, saran, atau hal penting tentang hari ini..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
                 </label>
 
                 <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal">Submit Check-Out</button>
