@@ -48,6 +48,7 @@ interface H1ConfirmationStructure {
 
 interface FirebaseMetaConfig {
   expectedParticipants?: number;
+  activeOsjurDay?: string;
   [key: string]: string | number | undefined;
 }
 
@@ -55,8 +56,8 @@ export default function AttendancePage() {
   const { t } = useI18n();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"dday_awal" | "dday_akhir" | "h1">("dday_awal");
-  const [selectedDay, setSelectedDay] = useState<string>("day_1");
 
+  // Input state penampung data formulir utama maba
   const [fullName, setFullName] = useState<string>("");
   const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
@@ -65,12 +66,14 @@ export default function AttendancePage() {
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [feedbackText, setFeedbackText] = useState<string>("");
 
+  // Input state penampung data skrining medis lapangan maba
   const [condition, setCondition] = useState<string>("Tidak sakit");
   const [illnessName, setIllnessName] = useState<string>("");
   const [symptoms, setSymptoms] = useState<string>("");
   const [tookMedicine, setTookMedicine] = useState<string>("Belum");
   const [medicineName, setMedicineName] = useState<string>("");
 
+  // Storage array internal penampung data kalkulasi real-time metrics
   const [awalRecords, setAwalRecords] = useState<AttendanceAwalStructure[]>([]);
   const [akhirRecords, setFeedbackRecords] = useState<AttendanceAkhirStructure[]>([]);
   const [h1Records, setH1Records] = useState<H1ConfirmationStructure[]>([]);
@@ -80,6 +83,9 @@ export default function AttendancePage() {
   const [saveMessage, setSaveMessage] = useState<string>("");
 
   const studentNIM = user?.email ? user.email.split("@")[0] : "";
+
+  // Hari presensi ditarik mutlak dari pengaturan Admin agar maba tidak bisa ngintip day
+  const selectedDay = typeof firebaseMeta?.activeOsjurDay === "string" ? firebaseMeta.activeOsjurDay : "day_1";
 
   useEffect(() => {
     if (!user) return;
@@ -129,6 +135,7 @@ export default function AttendancePage() {
     };
   }, [user, selectedDay]);
 
+  // Pencocokan Gerbang Close Gate Mengikuti Parameter Hari yang Dipilih Admin
   const isGateClosed = useMemo(() => {
     if (!firebaseMeta) return false;
     let fieldKey = `${selectedDay}_dday_awal_deadline`;
@@ -171,11 +178,11 @@ export default function AttendancePage() {
     if (!fullName.trim() || !studentNIM) return;
 
     if (!evidenceFile) {
-      setSaveMessage("Gagal: Anda diwajibkan untuk mengunggah berkas foto bukti dokumentasi fisik kehadiran sebelum melakukan submit!");
+      setSaveMessage("❌ GAGAL: Anda wajib melampirkan berkas foto bukti dokumentasi fisik kehadiran sebelum submit!");
       return;
     }
 
-    setSaveMessage("Mencadangkan paket data presensi ke server pusat...");
+    setSaveMessage("⏳ Sedang memproses dan mencadangkan data presensi Anda ke server...");
 
     try {
       let evidenceUrl = "";
@@ -197,12 +204,12 @@ export default function AttendancePage() {
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
-      setSaveMessage("Presensi Check-In Berhasil Dikunci!");
+      setSaveMessage("✅ BERHASIL: Presensi Check-In Anda sudah terkirim dan terkunci aman di sistem panitia!");
       setFullName("");
       setEvidenceText("");
       setEvidenceFile(null);
     } catch (err: unknown) {
-      setSaveMessage(`Eror: ${err instanceof Error ? err.message : "Failure"}`);
+      setSaveMessage(`❌ GAGAL: ${err instanceof Error ? err.message : "Terjadi kesalahan jaringan."}`);
     }
   };
 
@@ -210,7 +217,7 @@ export default function AttendancePage() {
     e.preventDefault();
     if (isGateClosed) return;
     if (!fullName.trim() || !studentNIM) return;
-    setSaveMessage("Memproses otentikasi check-out harian...");
+    setSaveMessage("⏳ Memproses otentikasi data check-out harian Anda...");
 
     try {
       await setDoc(doc(db, `attendance_akhir_day_${selectedDay.split("_")[1]}`, studentNIM), {
@@ -222,11 +229,11 @@ export default function AttendancePage() {
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
-      setSaveMessage("Presensi Check-Out Berhasil Dikunci!");
+      setSaveMessage("✅ BERHASIL: Presensi Check-Out & Evaluasi Anda berhasil terekam sistem!");
       setFullName("");
       setFeedbackText("");
     } catch (err: unknown) {
-      setSaveMessage(`Eror: ${err instanceof Error ? err.message : "Failure"}`);
+      setSaveMessage(`❌ GAGAL: ${err instanceof Error ? err.message : "Terjadi kesalahan jaringan."}`);
     }
   };
 
@@ -234,7 +241,7 @@ export default function AttendancePage() {
     e.preventDefault();
     if (isGateClosed) return;
     if (!fullName.trim() || !studentNIM) return;
-    setSaveMessage("Mengirimkan enkripsi berkas skrining medis...");
+    setSaveMessage("⏳ Mengenkripsi dan mengirimkan berkas skrining medis Anda ke tim kesehatan...");
 
     try {
       await setDoc(doc(db, `h1_confirmations_day_${selectedDay.split("_")[1]}`, studentNIM), {
@@ -250,14 +257,27 @@ export default function AttendancePage() {
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
-      setSaveMessage("Paket Data Skrining Kesehatan H-1 Berhasil Dikunci!");
+      setSaveMessage("✅ BERHASIL: Paket Data Skrining Kesehatan H-1 Anda resmi terkunci di sistem!");
       setFullName("");
       setIllnessName("");
       setSymptoms("");
       setMedicineName("");
     } catch (err: unknown) {
-      setSaveMessage(`Eror: ${err instanceof Error ? err.message : "Failure"}`);
+      setSaveMessage(`❌ GAGAL: ${err instanceof Error ? err.message : "Terjadi kesalahan jaringan."}`);
     }
+  };
+
+  // FUNGSI RENDER NOTIFIKASI AMAN (Bukan Nested Component, Jadi Bebas Eror Garis Merah)
+  const renderNotificationBanner = () => {
+    if (!saveMessage) return null;
+    const isSuccess = saveMessage.startsWith("✅");
+    const isError = saveMessage.startsWith("❌");
+    
+    return (
+      <div className={`p-4 mb-4 rounded-xl border font-bold text-[11px] sm:text-xs tracking-wider animate-revealDown ${isSuccess ? 'bg-teal-900/40 border-teal-500 text-teal-400' : isError ? 'bg-[#CE4A2D]/20 border-[#CE4A2D] text-[#CE4A2D]' : 'bg-white/10 border-white/20 text-[#D5C757]'}`}>
+        {saveMessage}
+      </div>
+    );
   };
 
   return (
@@ -287,23 +307,15 @@ export default function AttendancePage() {
           <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0 min-w-0">
             <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
-              Target Hari Operasional:
+              Target Hari Operasional Aktif:
             </label>
-            <select
-              value={selectedDay}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedDay(e.target.value); setSaveMessage(""); }}
-              className="w-full rounded-xl border border-[#084D58]/60 bg-[#0F282F] px-3 py-2.5 text-xs font-semibold text-[#F2EDEC] outline-none focus:border-[#D5C757] transition cursor-pointer text-ellipsis overflow-hidden break-words whitespace-normal"
-            >
-              {osjurDays.map((day) => (
-                <option key={day.value} value={day.value} className="bg-[#0F282F] text-[#F2EDEC]">
-                  {day.label}
-                </option>
-              ))}
-            </select>
+            <div className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
+              {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
+            </div>
           </div>
         </header>
 
-        {/* TAB BUTTON NAVIGATION (PERBAIKAN OVERLAP DENGAN SHRINK-0) */}
+        {/* TAB BUTTON NAVIGATION */}
         <nav className="flex flex-nowrap border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
           <button
             type="button"
@@ -331,7 +343,7 @@ export default function AttendancePage() {
           </button>
         </nav>
 
-        {/* WARNING CLOSE GATE TIMELINE BANNER (PERBAIKAN OVERFLOW TEKS KEPANJANGAN) */}
+        {/* WARNING CLOSE GATE TIMELINE BANNER */}
         {isGateClosed && (
           <div className="col-span-full panel rounded-2xl border border-[#CE4A2D]/50 bg-[#CE4A2D]/10 p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full">
@@ -362,6 +374,8 @@ export default function AttendancePage() {
                 </div>
               </div>
 
+              {renderNotificationBanner()}
+
               <form onSubmit={handleDDayAwalSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
@@ -389,7 +403,6 @@ export default function AttendancePage() {
                   <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
                 </label>
 
-                {/* FILE INPUT PERBAIKAN OVERFLOW TEKS NAMA FILE PANJANG */}
                 <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
                   <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
@@ -418,6 +431,8 @@ export default function AttendancePage() {
                 </div>
               </div>
 
+              {renderNotificationBanner()}
+
               <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
@@ -425,7 +440,7 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
@@ -433,8 +448,8 @@ export default function AttendancePage() {
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
                   <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir">Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
-                    <option value="tidak hadir">Izin Meninggalkan Sesi Lebih Awal</option>
+                    <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
+                    <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
                   </select>
                 </label>
 
@@ -463,6 +478,8 @@ export default function AttendancePage() {
                   📅
                 </div>
               </div>
+
+              {renderNotificationBanner()}
 
               <form onSubmit={handleH1Submit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
@@ -567,10 +584,10 @@ export default function AttendancePage() {
               )}
               {activeTab === "h1" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Tepat Waktu:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Estimasi Tepat:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
                   <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Sesi:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Absen Besok:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
                 </>
               )}
               

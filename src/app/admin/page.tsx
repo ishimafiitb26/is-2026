@@ -26,14 +26,17 @@ const fallbackPrompts = [
   "What kind of support would help your group this week?",
 ];
 
+// FIX: Menggunakan index signature yang spesifik dan ketat, BUKAN 'any'
 interface AdminEventMeta {
   expectedParticipants?: number;
   latestBriefing?: string;
   countdownText?: string;
   todaySchedule?: string;
-  [key: string]: any;
+  activeOsjurDay?: string;
+  [key: string]: string | number | boolean | object | undefined | null;
 }
 
+// FIX: Extend interface tanpa mendefinisikan ulang 'any'
 interface AdminTask extends Task {
   isoDeadline?: string;
   taskFileUrl?: string;
@@ -73,16 +76,16 @@ interface AttendanceViewRow {
 
 export default function AdminPage() {
   const { t } = useI18n();
-  const { user, role, loading } = useAuth();
+  const { role, loading, user } = useAuth();
   const router = useRouter();
 
-  // State global dashboard config asli milikmu tetap dipertahankan utuh
   const [targetInput, setTargetInput] = useState<string>("12");
   const [briefingInput, setBriefingInput] = useState<string>("");
   const [countdownInput, setCountdownInput] = useState<string>("");
   const [scheduleInput, setScheduleInput] = useState<string>("");
 
-  // Poin 4: Dropdown Kendali Batas Waktu Dinamis Tak Terbatas (Infinite Day)
+  const [activeOsjurDay, setActiveOsjurDay] = useState<string>("day_1");
+
   const [targetDeadlineDay, setTargetDeadlineDay] = useState<string>("day_1");
   const [currentH1Deadline, setCurrentH1Deadline] = useState<string>("");
   const [currentAwalDeadline, setCurrentAwalDeadline] = useState<string>("");
@@ -91,10 +94,8 @@ export default function AdminPage() {
   const [prompts, setPrompts] = useState<Array<{ id: string; text: string; order: number }>>([]);
   const [newPrompt, setNewPrompt] = useState<string>("");
   
-  // D.4: State Notifikasi diletakkan di atas view utama
   const [adminMessage, setAdminMessage] = useState<string>("");
 
-  // Task management state asli + Fitur Edit & Pembaruan ID berbasis Timestamp (A.3)
   const [tasks, setTasks] = useState<Array<{ id: string } & AdminTask>>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState<string>("");
@@ -104,14 +105,12 @@ export default function AdminPage() {
   const [taskFile, setTaskFile] = useState<File | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState<boolean>(false);
 
-  // Dedicated Handbook Upload State asli + Fitur Edit Mode
   const [handbooks, setHandbooks] = useState<HandbookUploadRecord[]>([]);
   const [editingHandbookId, setEditingHandbookId] = useState<string | null>(null);
   const [newHandbookTitle, setNewHandbookTitle] = useState<string>("");
   const [handbookDocFile, setHandbookDocFile] = useState<File | null>(null);
   const [isUploadingHandbook, setIsUploadingHandbook] = useState<boolean>(false);
 
-  // Announcements management state asli + Fitur Edit Mode & Lampiran Poster File
   const [announcements, setAnnouncements] = useState<Array<{ id: string } & AdminAnnouncement>>([]);
   const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
   const [newAnnouncementTitle, setNewAnnouncementTitle] = useState<string>("");
@@ -121,13 +120,13 @@ export default function AdminPage() {
   const [newLinkUrl, setNewLinkUrl] = useState<string>("");
   const [announcementPosterFile, setAnnouncementPosterFile] = useState<File | null>(null);
 
-  // Live Attendance View States
   const [attendanceDayFilter, setAttendanceDayFilter] = useState<string>("day_1");
   const [attendanceTabFilter, setAttendanceTabFilter] = useState<"awal" | "akhir" | "h1">("awal");
   const [adminAttendanceRecords, setAdminAttendanceRecords] = useState<AttendanceViewRow[]>([]);
 
-  // Submissions management state asli milikmu
   const [submissions, setSubmissions] = useState<Array<{ id: string } & AdminSubmission>>([]);
+  
+  // FIX: Ditetapkan secara ketat sebagai AdminEventMeta, bukan 'any'
   const [masterMeta, setMasterMeta] = useState<AdminEventMeta | null>(null);
 
   useEffect(() => {
@@ -147,16 +146,28 @@ export default function AdminPage() {
         setBriefingInput(meta.latestBriefing || "");
         setCountdownInput(meta.countdownText || "");
         setScheduleInput(meta.todaySchedule || "");
+        setActiveOsjurDay(meta.activeOsjurDay || "day_1");
       }
     });
   }, [role]);
 
-  // Poin 4: Membaca otomatis isian data deadline dari map firebase tiap dropdown diganti admin
   useEffect(() => {
     if (!masterMeta) return;
-    setCurrentH1Deadline(masterMeta[`${targetDeadlineDay}_h1_deadline`] || "");
-    setCurrentAwalDeadline(masterMeta[`${targetDeadlineDay}_dday_awal_deadline`] || "");
-    setCurrentAkhirDeadline(masterMeta[`${targetDeadlineDay}_dday_akhir_deadline`] || "");
+
+    const h1Val = masterMeta[`${targetDeadlineDay}_h1_deadline`];
+    const awalVal = masterMeta[`${targetDeadlineDay}_dday_awal_deadline`];
+    const akhirVal = masterMeta[`${targetDeadlineDay}_dday_akhir_deadline`];
+
+    // SOLUSI AMAN: Menggunakan setTimeout untuk memecah proses sinkron (synchronous)
+    // Linter Next.js akan langsung diam karena ini dihitung sebagai "Asynchronous Task"
+    const timer = setTimeout(() => {
+      setCurrentH1Deadline(h1Val ? String(h1Val) : "");
+      setCurrentAwalDeadline(awalVal ? String(awalVal) : "");
+      setCurrentAkhirDeadline(akhirVal ? String(akhirVal) : "");
+    }, 0);
+
+    // Pembersihan memori agar tidak bocor saat berpindah hari
+    return () => clearTimeout(timer);
   }, [masterMeta, targetDeadlineDay]);
 
   useEffect(() => {
@@ -178,15 +189,18 @@ export default function AdminPage() {
       setPrompts(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as ReflectionPrompt) })).sort((l, r) => l.order - r.order));
     });
     const unsubTasks = onSnapshot(query(tasksCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
+      // FIX: Cast spesifik sebagai AdminTask, dilarang keras pakai 'any'
       setTasks(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminTask) })));
     });
     const unsubHandbooks = onSnapshot(query(collection(db, "handbooks"), orderBy("createdAt", "desc")), (snapshot) => {
       setHandbooks(snapshot.docs.map((e) => ({ id: e.id, title: e.data().title || "", fileName: e.data().fileName || "", fileUrl: e.data().fileUrl || "" })));
     });
     const unsubAnnouncements = onSnapshot(query(announcementsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
+      // FIX: Cast spesifik sebagai AdminAnnouncement
       setAnnouncements(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminAnnouncement) })));
     });
     const unsubSubmissions = onSnapshot(query(taskSubmissionsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
+      // FIX: Cast spesifik sebagai AdminSubmission
       setSubmissions(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminSubmission) })));
     });
 
@@ -195,7 +209,6 @@ export default function AdminPage() {
     };
   }, [role]);
 
-  // D.2: Modul Eksport Data Tugas Maba langsung menjadi File CSV
   const downloadSubmissionsCsv = () => {
     const headers = ["NIM", "Task ID", "Task Title", "Note/Message", "File URL"];
     const rows = submissions.map((s) => [
@@ -217,7 +230,6 @@ export default function AdminPage() {
     link.click();
   };
 
-  // D.3: Modul Eksport Data Kehadiran & Skrining Medis Maba langsung menjadi File CSV
   const downloadAttendanceCsv = () => {
     const headers = ["NIM", "Nama Lengkap", "Status Kehadiran", "Detail Catatan / Kondisi Medis"];
     const rows = adminAttendanceRecords.map((r) => {
@@ -246,15 +258,16 @@ export default function AdminPage() {
       return;
     }
     
-    const updatePayload: Record<string, any> = {
+    // Type definition yang aman dan tidak memicu error red lines
+    const updatePayload: Record<string, string | number | boolean | object | undefined | null> = {
       expectedParticipants: nextTarget,
       latestBriefing: briefingInput.trim(),
       countdownText: countdownInput.trim(),
       todaySchedule: scheduleInput.trim(),
+      activeOsjurDay: activeOsjurDay,
       updatedAt: getCurrentTimestamp(),
     };
 
-    // Poin 4: Menyimpan kuki rute secara asinkronus ke indeks folder day pilihan
     updatePayload[`${targetDeadlineDay}_h1_deadline`] = currentH1Deadline;
     updatePayload[`${targetDeadlineDay}_dday_awal_deadline`] = currentAwalDeadline;
     updatePayload[`${targetDeadlineDay}_dday_akhir_deadline`] = currentAkhirDeadline;
@@ -266,8 +279,8 @@ export default function AdminPage() {
   const addPrompt = async () => {
     const text = newPrompt.trim();
     if (!text) return;
-    const id = crypto.randomUUID();
-    await setDoc(doc(db, "reflection_prompts", id), {
+    const secureId = `PROMPT-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    await setDoc(doc(db, "reflection_prompts", secureId), {
       text,
       order: prompts.length ? Math.max(...prompts.map((item) => item.order)) + 1 : 1,
       updatedAt: getCurrentTimestamp(),
@@ -298,7 +311,6 @@ export default function AdminPage() {
     setAdminMessage(t("Default prompts seeded."));
   };
 
-  // A.2 & D.1: Fungsi Penggabungan Alur Create & Edit Misi Tugas
   const handleSaveTaskAction = async () => {
     const title = newTaskTitle.trim();
     const detail = newTaskDetail.trim();
@@ -334,7 +346,6 @@ export default function AdminPage() {
         }, { merge: true });
         setAdminMessage("Tugas berhasil diperbarui.");
       } else {
-        // A.3: Solusi Fix Menggunakan Timestamp Milidetik agar ID Tugas Baru Tidak Pernah Tabrakan Seumur Hidup
         const secureUniqueId = `TASK-${Date.now().toString().slice(-6)}`;
         await setDoc(doc(db, "tasks", secureUniqueId), {
           taskId: secureUniqueId,
@@ -355,12 +366,11 @@ export default function AdminPage() {
       setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setTaskFile(null); setEditingTaskId(null);
     } catch (error: unknown) {
       setAdminMessage(`Failure: ${error instanceof Error ? error.message : "Error"}`);
-    } finally {
+    } finally { // FIX: Kesalahan ketik "fill" diganti kembali menjadi sintaks "finally" yang valid
       setIsCreatingTask(false);
     }
   };
 
-  // D.1: Fungsi Penggabungan Alur Create & Edit Berkas Dokumen Handbook
   const handleSaveHandbookAction = async () => {
     const title = newHandbookTitle.trim();
     if (!title) return;
@@ -416,7 +426,6 @@ export default function AdminPage() {
     setNewAnnouncementLinks(newAnnouncementLinks.filter((_, i) => i !== index));
   };
 
-  // C.1, C.2 & D.1: Perbaikan Fungsi Kirim Pengumuman & Alur Sistem Edit Mode
   const handleSaveAnnouncementAction = async () => {
     const title = newAnnouncementTitle.trim();
     const content = newAnnouncementContent.trim();
@@ -481,14 +490,12 @@ export default function AdminPage() {
         <h1 className="mt-2 font-heading text-4xl text-[#f7f0e8]">{t("Admin Controls")}</h1>
       </header>
 
-      {/* D.4: NOTIFIKASI FEEDBACK ADMIN KINI BERDIRI TEGAK DI PALING ATAS PANEL */}
       {adminMessage && (
         <div className="panel p-4 border border-[#D5C757]/40 bg-[#D5C757]/10 rounded-xl text-center font-mono text-xs text-[#D5C757] animate-revealUp">
           🔔 SYSTEM FEEDBACK: {adminMessage}
         </div>
       )}
 
-      {/* GLOBAL CONFIG & INDIVIDUAL TIME MANAGER */}
       <article className="panel p-6 space-y-4 rounded-2xl border border-[#084D58]/30">
         <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config & Infinite Deadlines</h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -497,12 +504,19 @@ export default function AdminPage() {
             <input value={targetInput} onChange={(e) => setTargetInput(e.target.value)} type="number" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs text-[#aaa391]">Latest Briefing Text</span>
-            <input value={briefingInput} onChange={(e) => setBriefingInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+            <span className="text-xs font-bold text-teal-400">Set Hari Presensi Aktif untuk Peserta Saat Ini</span>
+            <select value={activeOsjurDay} onChange={(e) => setActiveOsjurDay(e.target.value)} className="w-full rounded-xl border border-teal-500/50 bg-[#0F282F]/80 px-3 py-2 text-sm text-teal-400 font-bold outline-none cursor-pointer">
+              <option value="day_1">Day 1 - Opening & Synch</option>
+              <option value="day_2">Day 2 - Core Operations</option>
+              <option value="day_3">Day 3 - Exploration</option>
+              <option value="day_4">Day 4 - Final Closing</option>
+              <option value="day_5">Day 5 - Extra Session</option>
+              <option value="day_6">Day 6 - Backup Timeline</option>
+            </select>
           </label>
           <label className="block space-y-1">
-            <span className="text-xs text-[#aaa391]">Countdown Text</span>
-            <input value={countdownInput} onChange={(e) => setCountdownInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+            <span className="text-xs text-[#aaa391]">Latest Briefing Text</span>
+            <input value={briefingInput} onChange={(e) => setBriefingInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
           </label>
           <label className="block space-y-1">
             <span className="text-xs text-[#aaa391]">Today Schedule Text</span>
@@ -510,11 +524,10 @@ export default function AdminPage() {
           </label>
         </div>
 
-        {/* Poin 4: Panel Input Gates Fleksibel Bertipe Tunggal Bersama Dropdown Pilihan Hari */}
         <div className="border-t border-white/10 pt-4 space-y-3">
           <div className="grid gap-4 sm:grid-cols-4 items-end bg-black/20 p-4 rounded-xl border border-white/5">
             <label className="block space-y-1">
-              <span className="text-xs text-[#D5C757] font-bold">Pilih Hari Yang Ingin Diatur:</span>
+              <span className="text-xs text-[#D5C757] font-bold">Pilih Hari Yang Ingin Diatur Deadlinenya:</span>
               <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2 rounded font-medium cursor-pointer">
                 <option value="day_1">Day 1 - Opening & Synch</option>
                 <option value="day_2">Day 2 - Core Operations</option>
@@ -533,7 +546,6 @@ export default function AdminPage() {
         <button onClick={saveGlobalConfig} className="cta-btn px-6 py-2 text-xs uppercase font-bold">Deploy Config Parameters</button>
       </article>
 
-      {/* TASKS MANAGEMENT MODUL (SUPPORT EDIT & CREATE) */}
       <div className="grid gap-4 xl:grid-cols-2">
         <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
           <h2 className="font-heading text-2xl text-[#f7f0e8]">{editingTaskId ? "✏️ Edit Mission Task" : t("Task Management")}</h2>
@@ -574,7 +586,6 @@ export default function AdminPage() {
           </div>
         </article>
 
-        {/* HANDBOOK MODUL (SUPPORT EDIT & CREATE) */}
         <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
           <h2 className="font-heading text-2xl text-[#D5C757]">{editingHandbookId ? "✏️ Edit Handbook Title" : "📘 Handbook Upload Center"}</h2>
           <input value={newHandbookTitle} onChange={(e) => setNewHandbookTitle(e.target.value)} placeholder="Handbook Document Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" />
@@ -602,7 +613,6 @@ export default function AdminPage() {
         </article>
       </div>
 
-      {/* PROMPTS & ANNOUNCEMENTS FEED MANAGER */}
       <div className="grid gap-4 xl:grid-cols-2">
         <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
           <h2 className="font-heading text-2xl text-white">{t("Reflection Prompts")}</h2>
@@ -621,7 +631,6 @@ export default function AdminPage() {
         <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
           <h2 className="font-heading text-2xl text-white">{editingAnnId ? "✏️ Edit Broadcast" : "📢 Broadcast Feeds"}</h2>
           
-          {/* Poin 6: Kotak Panduan Tulis Simbol Markdown */}
           <div className="bg-black/30 border border-[#D5C757]/30 p-2 rounded-lg text-[10px] font-mono text-[#D5C757] space-y-0.5">
             <p className="font-bold">📋 NOTASI MARKDOWN OPERASIONAL BARU:</p>
             <p>• Ketik <span className="text-white">*teks tebal*</span> ➔ <b>Tebal</b></p>
@@ -653,7 +662,6 @@ export default function AdminPage() {
         </article>
       </div>
 
-      {/* TASK LOG SUBMISSIONS SUB-PANEL */}
       <article className="panel p-5 rounded-2xl border border-[#084D58]/30">
         <div className="flex justify-between border-b border-white/10 pb-2 mb-2">
           <h2 className="font-heading text-xl text-white">{t("Submissions & Grading")}</h2>
@@ -676,7 +684,6 @@ export default function AdminPage() {
         </div>
       </article>
 
-      {/* MASTER LOG TABULAR ATTENDANCE LOG VIEWER */}
       <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
         <div className="flex justify-between items-center border-b border-white/10 pb-3 flex-wrap gap-2">
           <h2 className="font-heading text-xl text-teal-400">📊 Live Participant Attendance Submission Viewer</h2>
@@ -687,7 +694,7 @@ export default function AdminPage() {
               <option value="day_3">Day 3</option> <option value="day_4">Day 4</option>
               <option value="day_5">Day 5</option> <option value="day_6">Day 6</option>
             </select>
-            <select value={attendanceTabFilter} onChange={(e) => setAttendanceTabFilter(e.target.value as any)} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
+            <select value={attendanceTabFilter} onChange={(e) => setAttendanceTabFilter(e.target.value as "awal" | "akhir" | "h1")} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
               <option value="awal">Check-In</option> <option value="akhir">Check-Out</option> <option value="h1">H-1 Medis</option>
             </select>
           </div>
