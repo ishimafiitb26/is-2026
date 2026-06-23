@@ -55,6 +55,7 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // SOLUSI SAKRAL: Mengunci opsi tipe data pilihan menggunakan enum literal string (ZERO ANY)
   const [submissionType, setSubmissionType] = useState<"image" | "document" | "link">("image");
@@ -130,7 +131,8 @@ export default function TasksPage() {
       return;
     }
 
-    setSaveMessage("Mengunci berkas pengumpulan ke database cloud...");
+    setIsLoading(true); // 🔒 KUNCI TOMBOL SAAT MULAI
+    setSaveMessage("Mengunggah dan mengunci berkas penugasan ke database cloud...");
 
     try {
       let finalizedUrl = "";
@@ -162,6 +164,8 @@ export default function TasksPage() {
       setNote("");
     } catch (error: unknown) {
       setSaveMessage(error instanceof Error ? error.message : "Failed to save submission.");
+    } finally {
+    setIsLoading(false); // 🔓 BUKA KUNCI TOMBOL SETELAH SELESAI ATAU EROR
     }
   };
 
@@ -320,8 +324,12 @@ export default function TasksPage() {
           </label>
 
           {/* TOMBOL BERGANTI SECARA ADAPTIF DAN OTOMATIS BERDASARKAN HASIL SCAN REAL-TIME DATABASE */}
-          <button type="submit" disabled={isTaskGateClosed} className="cta-btn px-4 py-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-            {hasSubmitted ? "Kirim Ulang Jawaban (Revisi)" : "Kirim Jawaban Utama"}
+          <button 
+            type="submit" 
+            disabled={isTaskGateClosed || isLoading} 
+            className="cta-btn px-4 py-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Mengunggah... ⏳" : (hasSubmitted ? "Kirim Ulang Jawaban (Revisi)" : "Kirim Jawaban Utama")}
           </button>
         </form>
 

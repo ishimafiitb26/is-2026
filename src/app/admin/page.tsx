@@ -706,6 +706,8 @@ export default function AdminPage() {
                 <th className="p-3">NIM Data Token</th>
                 <th className="p-3">Nama Peserta Sesuai Sistem</th>
                 <th className="p-3">Status Indeks Kehadiran</th>
+                {/* TAMBAHAN KOLOM KE-4 UNTUK MENAMPILKAN FEEDBACK/CATATAN */}
+                <th className="p-3">Detail (Catatan/Feedback/Medis)</th>
               </tr>
             </thead>
             <tbody>
@@ -715,10 +717,21 @@ export default function AdminPage() {
                     <td className="p-3 font-mono text-teal-400 font-bold">{row.nim}</td>
                     <td className="p-3 font-medium">{row.fullName}</td>
                     <td className="p-3"><span className="px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-bold">{row.status}</span></td>
+                    
+                    {/* TAMBAHAN RENDER DATA KE-4 BERDASARKAN TAB AKTIF */}
+                    <td className="p-3 max-w-[250px] break-words whitespace-normal text-[10px] sm:text-[11px] text-[#aaa391]">
+                      {attendanceTabFilter === "awal" && (row.evidenceText || "-")}
+                      {attendanceTabFilter === "akhir" && (row.feedback || "-")}
+                      {attendanceTabFilter === "h1" && (
+                        row.condition === "Sedang sakit" 
+                        ? `Sakit: ${row.illnessName} | Gejala: ${row.symptoms} | Minum Obat: ${row.tookMedicine} (${row.medicineName})`
+                        : (row.condition || "-")
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={3} className="p-4 text-center text-[#aaa391] italic">Belum ada sirkulasi paket log absensi maba masuk pada parameter filter ini.</td></tr>
+                <tr><td colSpan={4} className="p-4 text-center text-[#aaa391] italic">Belum ada sirkulasi paket log absensi maba masuk pada parameter filter ini.</td></tr>
               )}
             </tbody>
           </table>
