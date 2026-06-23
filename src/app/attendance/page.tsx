@@ -377,10 +377,10 @@ export default function AttendancePage() {
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
                   <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
-                    <option value="hadir">Hadir Tepat Waktu Di Ring Utama</option>
-                    <option value="menyusul">Hadir Menyusul / Mengalami Keterlambatan</option>
-                    <option value="meninggalkan">Izin Meninggalkan Sesi Sebelum Selesai</option>
-                    <option value="tidak hadir">Absen Absolut / Berhalangan Tetap</option>
+                    <option value="hadir">Hadir Tepat Waktu</option>
+                    <option value="menyusul">Hadir Menyusul</option>
+                    <option value="meninggalkan">Izin Meninggalkan</option>
+                    <option value="tidak hadir">Tidak Hadir</option>
                   </select>
                 </label>
 
@@ -393,7 +393,7 @@ export default function AttendancePage() {
                 <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
                   <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
-                    <span>🖼️ Bukti Dokumentasi Fisik (MUTLAK WAJIB DIISI)</span>
+                    <span>🖼️ Bukti Dokumentasi (WAJIB DIISI)</span>
                   </label>
                   <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form absensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi kegiatan atau scan surat izin resmi!</p>
                   
@@ -411,7 +411,7 @@ export default function AttendancePage() {
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Absensi Check-Out & Evaluasi</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik maba harian.</p>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik harian.</p>
                 </div>
                 <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
                   🏁
@@ -425,7 +425,7 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
@@ -433,8 +433,8 @@ export default function AttendancePage() {
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
                   <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
-                    <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
+                    <option value="hadir">Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
+                    <option value="tidak hadir">Izin Meninggalkan Sesi Lebih Awal</option>
                   </select>
                 </label>
 
@@ -457,7 +457,7 @@ export default function AttendancePage() {
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Kesiapan & Skrining Riwayat Medis</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi fisik vital untuk pemetaan logistik tim medis lapangan.</p>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi fisik</p>
                 </div>
                 <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
                   📅
@@ -471,18 +471,18 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kesiapan Hadir</span>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kehadiran</span>
                   <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir tepat waktu">Hadir Tepat Waktu Sesuai Instruksi Pagi</option>
-                    <option value="hadir menyusul">Hadir Menyusul (Tabrakan Jadwal Akademik)</option>
-                    <option value="izin meninggalkan">Izin Meninggalkan Lapangan Lebih Cepat</option>
-                    <option value="tidak hadir">Mutlak Berhalangan Hadir (Sakit Keras/Izin)</option>
+                    <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
+                    <option value="hadir menyusul">Hadir Menyusul</option>
+                    <option value="izin meninggalkan">Izin Meninggalkan</option>
+                    <option value="tidak hadir">Tidak Hadir</option>
                   </select>
                 </label>
 
@@ -491,16 +491,16 @@ export default function AttendancePage() {
                   <div className="space-y-1">
                     <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
                       <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D5C757] shrink-0 mt-1 sm:mt-0.5" />
-                      <span>Sektor Skrining Medis Lapangan (Pita Putih)</span>
+                      <span>Sektor Skrining Medis Lapangan</span>
                     </h3>
-                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi fisik riil Anda demi keselamatan darurat selama di lapangan operasional.</p>
+                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan anda demi keselamatan darurat selama kegiatan</p>
                   </div>
 
                   <label className="block space-y-1">
-                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Fisik Tubuh Saat Ini?</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Tubuh Saat Ini?</span>
                     <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
-                      <option value="Tidak sakit">Sehat Walafiat & Bugar Tubuh</option>
-                      <option value="Sedang sakit">Sedang Sakit / Kurang Sehat / Ada Riwayat Kronis</option>
+                      <option value="Tidak sakit">Sehat</option>
+                      <option value="Sedang sakit">Sedang Sakit</option>
                     </select>
                   </label>
 
@@ -513,7 +513,7 @@ export default function AttendancePage() {
                           <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={isGateClosed} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala Fisik Dirasakan?</span>
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala yang dialami?</span>
                           <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={isGateClosed} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                       </div>
@@ -567,15 +567,15 @@ export default function AttendancePage() {
               )}
               {activeTab === "h1" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Estimasi Tepat:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Tepat Waktu:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
                   <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Sesi:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Absen Besok:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
                 </>
               )}
               
               <div className="pt-3 text-[9px] sm:text-[10px] text-[#aaa391] border-t border-[#084D58]/40 flex justify-between items-center gap-2">
-                <span className="truncate">Quota Target Maba:</span>
+                <span className="truncate">Jumlah Angkatan:</span>
                 <span className="font-mono font-bold text-white bg-[#084D58]/50 px-2 py-0.5 rounded border border-[#084D58] shrink-0">{expectedParticipants} Org</span>
               </div>
             </div>
