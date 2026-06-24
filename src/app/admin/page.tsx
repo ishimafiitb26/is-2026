@@ -26,7 +26,6 @@ const fallbackPrompts = [
   "What kind of support would help your group this week?",
 ];
 
-// FIX: Menggunakan index signature yang spesifik dan ketat, BUKAN 'any'
 interface AdminEventMeta {
   expectedParticipants?: number;
   latestBriefing?: string;
@@ -36,12 +35,12 @@ interface AdminEventMeta {
   [key: string]: string | number | boolean | object | undefined | null;
 }
 
-// FIX: Extend interface tanpa mendefinisikan ulang 'any'
 interface AdminTask extends Task {
   isoDeadline?: string;
   taskFileUrl?: string;
   taskFilePublicId?: string;
   fileName?: string;
+  expectedFormat?: string; // TAMBAHAN: Menyimpan opsi format yang diminta Admin
 }
 
 interface HandbookUploadRecord {
@@ -59,6 +58,9 @@ interface AdminAnnouncement extends Announcement {
 
 interface AdminSubmission extends TaskSubmission {
   nim?: string;
+  submissionType?: string; // TAMBAHAN: Untuk memunculkan label tipe data di tabel
+  fileUrl?: string;
+  fileName?: string;
 }
 
 interface AttendanceViewRow {
@@ -102,6 +104,7 @@ export default function AdminPage() {
   const [newTaskDetail, setNewTaskDetail] = useState<string>("");
   const [newTaskDeadline, setNewTaskDeadline] = useState<string>("");
   const [newTaskIsoDeadline, setNewTaskIsoDeadline] = useState<string>("");
+  const [newTaskExpectedFormat, setNewTaskExpectedFormat] = useState<string>("all"); // TAMBAHAN: State dropdown request tipe file
   const [taskFile, setTaskFile] = useState<File | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState<boolean>(false);
 
@@ -126,7 +129,6 @@ export default function AdminPage() {
 
   const [submissions, setSubmissions] = useState<Array<{ id: string } & AdminSubmission>>([]);
   
-  // FIX: Ditetapkan secara ketat sebagai AdminEventMeta, bukan 'any'
   const [masterMeta, setMasterMeta] = useState<AdminEventMeta | null>(null);
 
   useEffect(() => {
@@ -158,15 +160,12 @@ export default function AdminPage() {
     const awalVal = masterMeta[`${targetDeadlineDay}_dday_awal_deadline`];
     const akhirVal = masterMeta[`${targetDeadlineDay}_dday_akhir_deadline`];
 
-    // SOLUSI AMAN: Menggunakan setTimeout untuk memecah proses sinkron (synchronous)
-    // Linter Next.js akan langsung diam karena ini dihitung sebagai "Asynchronous Task"
     const timer = setTimeout(() => {
       setCurrentH1Deadline(h1Val ? String(h1Val) : "");
       setCurrentAwalDeadline(awalVal ? String(awalVal) : "");
       setCurrentAkhirDeadline(akhirVal ? String(akhirVal) : "");
     }, 0);
 
-    // Pembersihan memori agar tidak bocor saat berpindah hari
     return () => clearTimeout(timer);
   }, [masterMeta, targetDeadlineDay]);
 
@@ -189,18 +188,15 @@ export default function AdminPage() {
       setPrompts(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as ReflectionPrompt) })).sort((l, r) => l.order - r.order));
     });
     const unsubTasks = onSnapshot(query(tasksCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
-      // FIX: Cast spesifik sebagai AdminTask, dilarang keras pakai 'any'
       setTasks(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminTask) })));
     });
     const unsubHandbooks = onSnapshot(query(collection(db, "handbooks"), orderBy("createdAt", "desc")), (snapshot) => {
       setHandbooks(snapshot.docs.map((e) => ({ id: e.id, title: e.data().title || "", fileName: e.data().fileName || "", fileUrl: e.data().fileUrl || "" })));
     });
     const unsubAnnouncements = onSnapshot(query(announcementsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
-      // FIX: Cast spesifik sebagai AdminAnnouncement
       setAnnouncements(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminAnnouncement) })));
     });
     const unsubSubmissions = onSnapshot(query(taskSubmissionsCollectionRef, orderBy("createdAt", "desc")), (snapshot) => {
-      // FIX: Cast spesifik sebagai AdminSubmission
       setSubmissions(snapshot.docs.map((e) => ({ id: e.id, ...(e.data() as AdminSubmission) })));
     });
 
@@ -258,7 +254,6 @@ export default function AdminPage() {
       return;
     }
     
-    // Type definition yang aman dan tidak memicu error red lines
     const updatePayload: Record<string, string | number | boolean | object | undefined | null> = {
       expectedParticipants: nextTarget,
       latestBriefing: briefingInput.trim(),
@@ -339,6 +334,7 @@ export default function AdminPage() {
           detail,
           deadline,
           isoDeadline: newTaskIsoDeadline,
+          expectedFormat: newTaskExpectedFormat, // Inject format requirement
           taskFileUrl: taskFileUrl || currentTask?.taskFileUrl || "",
           taskFilePublicId: taskFilePublicId || currentTask?.taskFilePublicId || "",
           fileName: fileName || currentTask?.fileName || "",
@@ -353,6 +349,7 @@ export default function AdminPage() {
           detail,
           deadline,
           isoDeadline: newTaskIsoDeadline,
+          expectedFormat: newTaskExpectedFormat, // Inject format requirement
           isActive: true,
           taskFileUrl,
           taskFilePublicId,
@@ -363,10 +360,10 @@ export default function AdminPage() {
         setAdminMessage("Tugas unik baru berhasil dirilis.");
       }
 
-      setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setTaskFile(null); setEditingTaskId(null);
+      setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setNewTaskExpectedFormat("all"); setTaskFile(null); setEditingTaskId(null);
     } catch (error: unknown) {
       setAdminMessage(`Failure: ${error instanceof Error ? error.message : "Error"}`);
-    } finally { // FIX: Kesalahan ketik "fill" diganti kembali menjadi sintaks "finally" yang valid
+    } finally {
       setIsCreatingTask(false);
     }
   };
@@ -563,6 +560,19 @@ export default function AdminPage() {
             </label>
           </div>
 
+          {/* TAMBAHAN: DROPDOWN REQUEST TIPE FILE DARI ADMIN */}
+          <div className="grid gap-3 sm:grid-cols-2 pt-2">
+            <label className="block space-y-1">
+              <span className="text-[11px] text-[#D5C757] font-semibold">Tipe File Yang Diminta (Wajib)</span>
+              <select value={newTaskExpectedFormat} onChange={(e) => setNewTaskExpectedFormat(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none cursor-pointer">
+                <option value="all">Bebas (Gambar / Dokumen / Link)</option>
+                <option value="image">Wajib Gambar Saja (PNG/JPG)</option>
+                <option value="document">Wajib Dokumen Saja (PDF/DOCX)</option>
+                <option value="link">Wajib Link Tautan Saja</option>
+              </select>
+            </label>
+          </div>
+
           <div className="pt-1">
             <label className="block text-xs text-[#D5C757] mb-1">📄 {t("Task File (PDF/DOC)")}</label>
             <input type="file" onChange={(e) => setTaskFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
@@ -570,7 +580,7 @@ export default function AdminPage() {
           
           <div className="flex gap-2">
             <button onClick={handleSaveTaskAction} disabled={isCreatingTask} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingTaskId ? "Update Mission" : "Deploy Mission"}</button>
-            {editingTaskId && <button type="button" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); }} className="nav-chip text-xs">Batal</button>}
+            {editingTaskId && <button type="button" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setNewTaskExpectedFormat("all"); }} className="nav-chip text-xs">Batal</button>}
           </div>
           
           <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
@@ -578,7 +588,7 @@ export default function AdminPage() {
               <div key={tk.id} className="p-3 bg-black/15 border border-white/10 rounded-xl flex justify-between items-center text-xs">
                 <span className="font-medium text-[#F2EDEC] truncate max-w-[200px]">{tk.taskId} - {tk.title}</span>
                 <div className="flex gap-3">
-                  <button onClick={() => { setEditingTaskId(tk.id); setNewTaskTitle(tk.title); setNewTaskDetail(tk.detail); setNewTaskDeadline(tk.deadline); setNewTaskIsoDeadline(tk.isoDeadline || ""); }} className="text-teal-400 font-bold">Edit</button>
+                  <button onClick={() => { setEditingTaskId(tk.id); setNewTaskTitle(tk.title); setNewTaskDetail(tk.detail); setNewTaskDeadline(tk.deadline); setNewTaskIsoDeadline(tk.isoDeadline || ""); setNewTaskExpectedFormat(tk.expectedFormat || "all"); }} className="text-teal-400 font-bold">Edit</button>
                   <button onClick={() => deleteTask(tk.id)} className="text-[#CE4A2D] font-bold">Delete</button>
                 </div>
               </div>
@@ -667,7 +677,7 @@ export default function AdminPage() {
           <h2 className="font-heading text-xl text-white">{t("Submissions & Grading")}</h2>
           <button type="button" onClick={downloadSubmissionsCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Submissions CSV</button>
         </div>
-        <div className="space-y-2 max-h-40 overflow-y-auto text-xs text-white">
+        <div className="space-y-2 max-h-60 overflow-y-auto text-xs text-white">
           {submissions.length > 0 ? (
             submissions.map((sub) => (
               <div key={sub.id} className="p-3 bg-black/20 rounded-xl border border-white/5 flex justify-between items-center">
@@ -675,7 +685,20 @@ export default function AdminPage() {
                   <p className="font-bold text-[#D5C757]">{sub.taskId} • {sub.taskTitle}</p>
                   <p className="font-mono text-[10px] text-[#aaa391] mt-0.5">NIM Peserta: {sub.nim}</p>
                 </div>
-                <span className="status-pill text-[10px]">Received</span>
+                {/* TAMBAHAN: Tombol Admin Buka Tautan/File Langsung */}
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="flex gap-2 items-center">
+                    {sub.submissionType && (
+                      <span className="text-[9px] uppercase border border-white/20 px-1.5 py-0.5 rounded text-[#aaa391]">{sub.submissionType}</span>
+                    )}
+                    <span className="status-pill text-[10px]">Received</span>
+                  </div>
+                  {sub.fileUrl && (
+                    <a href={sub.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] bg-teal-800 px-3 py-1 rounded hover:bg-teal-700 transition">
+                      Buka {sub.submissionType === "link" ? "Tautan" : "File"}
+                    </a>
+                  )}
+                </div>
               </div>
             ))
           ) : (
@@ -706,7 +729,6 @@ export default function AdminPage() {
                 <th className="p-3">NIM Data Token</th>
                 <th className="p-3">Nama Peserta Sesuai Sistem</th>
                 <th className="p-3">Status Indeks Kehadiran</th>
-                {/* TAMBAHAN KOLOM KE-4 UNTUK MENAMPILKAN FEEDBACK/CATATAN */}
                 <th className="p-3">Detail (Catatan/Feedback/Medis)</th>
               </tr>
             </thead>
@@ -718,7 +740,6 @@ export default function AdminPage() {
                     <td className="p-3 font-medium">{row.fullName}</td>
                     <td className="p-3"><span className="px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-bold">{row.status}</span></td>
                     
-                    {/* TAMBAHAN RENDER DATA KE-4 BERDASARKAN TAB AKTIF */}
                     <td className="p-3 max-w-[250px] break-words whitespace-normal text-[10px] sm:text-[11px] text-[#aaa391]">
                       {attendanceTabFilter === "awal" && (row.evidenceText || "-")}
                       {attendanceTabFilter === "akhir" && (row.feedback || "-")}

@@ -9,9 +9,9 @@ import { useAuth } from "../../components/AuthProvider";
 import { db } from "../../lib/firebase";
 import PDFViewer from "../../components/PDFViewer";
 
-// Mendefinisikan tipe data perluasan properti tugas secara ketat agar lolos sensor strict linter
 interface ExtendedTask extends Task {
   isoDeadline?: string;
+  expectedFormat?: "all" | "image" | "document" | "link";
 }
 
 interface TaskSubmissionRow {
@@ -57,16 +57,34 @@ export default function TasksPage() {
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  // SOLUSI SAKRAL: Mengunci opsi tipe data pilihan menggunakan enum literal string (ZERO ANY)
   const [submissionType, setSubmissionType] = useState<"image" | "document" | "link">("image");
   const [submissionLink, setSubmissionLink] = useState<string>("");
   
   const [saveMessage, setSaveMessage] = useState<string>("");
   const [submissions, setSubmissions] = useState<TaskSubmissionRow[]>([]);
 
+  // PERBAIKAN 1: Inisialisasi dengan 0 untuk mematikan error Hydration Mismatch bawaan Next.js
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
   const studentNIM = user?.email ? user.email.split("@")[0] : "";
 
-  // Subscribe real-time list tugas dari panitia
+  // Waktu baru diisi secara asinkron setelah komponen mendarat aman di browser
+  useEffect(() => {
+    // Memecah eksekusi sinkron menjadi asinkron agar linter React diam
+    const initialTimer = setTimeout(() => {
+      setCurrentTime(Date.now());
+    }, 0);
+
+    // Timer akan terus memperbarui waktu setiap 10 detik
+    const interval = setInterval(() => setCurrentTime(Date.now()), 10000);
+
+    // Membersihkan memori saat pengguna pindah halaman
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) return;
 
@@ -80,7 +98,6 @@ export default function TasksPage() {
     }, (err: { message: string }) => console.debug(err.message));
   }, [selectedTask, user]);
 
-  // Subscribe real-time status jawaban berdasarkan ID tugas yang sedang aktif diklik
   useEffect(() => {
     if (!user || !selectedTask) return;
     return onSnapshot(collection(db, `submissions_${selectedTask}`), (snapshot) => {
@@ -93,15 +110,23 @@ export default function TasksPage() {
     return tasks.find((task) => task.taskId === selectedTask) ?? tasks[0];
   }, [selectedTask, tasks]);
 
-  // SOLUSI DEADLINE FIXED: Konversi penutupan gerbang akurat mencocokkan ISO string dengan penanggalan device
+  // Validasi gate dengan perlindungan jika currentTime masih 0 (saat hidrasi awal)
   const isTaskGateClosed = useMemo<boolean>(() => {
-    if (!activeTask || !activeTask.isoDeadline) return false;
-    const coreDeadline = new Date(activeTask.isoDeadline);
-    if (isNaN(coreDeadline.getTime())) return false;
-    return new Date() > coreDeadline;
-  }, [activeTask]);
+    if (!activeTask || !activeTask.isoDeadline || currentTime === 0) return false;
+    const coreDeadline = new Date(activeTask.isoDeadline).getTime();
+    if (isNaN(coreDeadline)) return false;
+    return currentTime > coreDeadline;
+  }, [activeTask, currentTime]);
 
-  // Menentukan secara dinamis apakah NIM milik maba ini sudah mengirimkan tugas di koleksi ini sebelumnya
+  // PERBAIKAN 2: Menggunakan turunan statis (derived state) ketimbang useEffect.
+  // Ini menghindari error Cascading Render karena state tidak ditimpa di luar siklus normal.
+  const effectiveSubmissionType = useMemo<"image" | "document" | "link">(() => {
+    if (activeTask?.expectedFormat && activeTask.expectedFormat !== "all") {
+      return activeTask.expectedFormat as "image" | "document" | "link";
+    }
+    return submissionType;
+  }, [activeTask, submissionType]);
+
   const hasSubmitted = useMemo<boolean>(() => {
     return submissions.some((sub) => sub.nim === studentNIM);
   }, [submissions, studentNIM]);
@@ -118,27 +143,27 @@ export default function TasksPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isTaskGateClosed) return;
+    if (isTaskGateClosed || isLoading) return;
     if (!activeTask || !studentNIM) return;
 
-    // VALIDASI ASINKRONUS: Menolak kiriman jika ada form media pengumpulan yang dikosongkan maba
-    if ((submissionType === "image" || submissionType === "document") && !evidenceFile) {
+    // VALIDASI: Menggunakan format tipe efektif dari useMemo di atas
+    if ((effectiveSubmissionType === "image" || effectiveSubmissionType === "document") && !evidenceFile) {
       setSaveMessage("Gagal: Anda wajib melampirkan berkas dokumen tugas terlebih dahulu!");
       return;
     }
-    if (submissionType === "link" && !submissionLink.trim()) {
-      setSaveMessage("Gagal: Kolom kolom isian link tautan tugas tidak boleh kosong!");
+    if (effectiveSubmissionType === "link" && !submissionLink.trim()) {
+      setSaveMessage("Gagal: Kolom isian link tautan tugas tidak boleh kosong!");
       return;
     }
 
-    setIsLoading(true); // 🔒 KUNCI TOMBOL SAAT MULAI
-    setSaveMessage("Mengunggah dan mengunci berkas penugasan ke database cloud...");
+    setIsLoading(true);
+    setSaveMessage("⏳ Sedang mengunggah dan mengunci berkas ke database...");
 
     try {
       let finalizedUrl = "";
       let finalFileName = "";
 
-      if (submissionType === "link") {
+      if (effectiveSubmissionType === "link") {
         finalizedUrl = submissionLink.trim();
         finalFileName = "Tautan URL Luar (Link)";
       } else if (evidenceFile) {
@@ -154,18 +179,18 @@ export default function TasksPage() {
         note: note.trim() || "-",
         fileUrl: finalizedUrl,
         fileName: finalFileName,
-        submissionType,
+        submissionType: effectiveSubmissionType,
         createdAt: getCurrentTimestamp(),
       });
 
-      setSaveMessage("Tugas berhasil dikunci! Data lama otomatis diperbarui ke revisi terbaru.");
+      setSaveMessage("✅ BERHASIL! Tugas terkunci. Data lama otomatis diperbarui ke revisi terbaru.");
       setEvidenceFile(null);
       setSubmissionLink("");
       setNote("");
     } catch (error: unknown) {
-      setSaveMessage(error instanceof Error ? error.message : "Failed to save submission.");
+      setSaveMessage(error instanceof Error ? `❌ GAGAL: ${error.message}` : "Failed to save submission.");
     } finally {
-    setIsLoading(false); // 🔓 BUKA KUNCI TOMBOL SETELAH SELESAI ATAU EROR
+      setIsLoading(false);
     }
   };
 
@@ -177,11 +202,10 @@ export default function TasksPage() {
         <p className="mt-3 max-w-2xl text-[#e2ded2]">{t("Check active assignments, read the brief, and submit your work in one place.")}</p>
       </header>
 
-      {/* RENDER BOX LOCK BANNER WARNA MERAH JIKA DEADLINE TELAH LEWAT */}
       {isTaskGateClosed && (
         <div className="panel p-4 border border-[#CE4A2D]/40 bg-[#CE4A2D]/10 text-center rounded-xl animate-revealUp">
           <p className="text-sm font-bold text-[#CE4A2D] uppercase tracking-wider">🔒 MISSION CLOSED - Batas Pengumpulan Habis</p>
-          <p className="text-xs text-[#aaa391] mt-1">Gerbang pengumpulan berkas otomatis dikunci sistem karena melewati batas waktu panitiapusat.</p>
+          <p className="text-xs text-[#aaa391] mt-1">Gerbang pengumpulan berkas otomatis dikunci sistem karena melewati batas waktu panitia pusat.</p>
         </div>
       )}
 
@@ -208,7 +232,6 @@ export default function TasksPage() {
           </div>
         </article>
 
-        {/* PEMANDU DESAIN PANEL BRIEF DENGAN PDFVIEWER ASLI BAWAAN KAMU */}
         <article className="panel p-5">
           <h2 className="font-heading text-3xl tracking-wider text-[#f7f0e8]">{t("Task Brief")}</h2>
           {activeTask ? (
@@ -250,7 +273,6 @@ export default function TasksPage() {
         </article>
       </div>
 
-      {/* KOMPONEN INPUT FORM PENGERJAAN MABA */}
       <article className="panel p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-heading text-3xl tracking-wider text-[#f7f0e8]">{t("Submit Your Work")}</h2>
@@ -263,11 +285,10 @@ export default function TasksPage() {
             <input type="text" value={studentNIM} disabled className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[#f7f0e8] font-mono font-bold opacity-50 outline-none" />
           </label>
 
-          {/* PERBAIKAN TOTAL: Menyingkirkan "as any" dan memetakan langsung tipe data ke state setter */}
           <label className="block space-y-1">
             <span className="text-sm text-[#d8d3c6]">Pilih Format Media Pengumpulan</span>
             <select
-              value={submissionType}
+              value={effectiveSubmissionType}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { 
                 const chosenFormat = e.target.value;
                 if (chosenFormat === "image" || chosenFormat === "document" || chosenFormat === "link") {
@@ -276,17 +297,26 @@ export default function TasksPage() {
                 setEvidenceFile(null); 
                 setSubmissionLink(""); 
               }}
-              disabled={isTaskGateClosed}
-              className="notranslate w-full rounded-lg border border-white/25 bg-black/20 px-3 py-2 text-[#f7f0e8] outline-none cursor-pointer"
+              disabled={isTaskGateClosed || (activeTask?.expectedFormat !== undefined && activeTask.expectedFormat !== "all")}
+              className="notranslate w-full rounded-lg border border-white/25 bg-black/20 px-3 py-2 text-[#f7f0e8] outline-none cursor-pointer disabled:opacity-50"
             >
-              <option value="image">Gambar / File Foto (PNG, JPG, JPEG)</option>
-              <option value="document">Dokumen File Mandiri (PDF, DOCX, DOC)</option>
-              <option value="link">Tautan Luar / Link URL (Google Drive, GitHub, Notion)</option>
+              {activeTask?.expectedFormat === "image" ? (
+                 <option value="image">Wajib Gambar / File Foto (PNG, JPG, JPEG)</option>
+              ) : activeTask?.expectedFormat === "document" ? (
+                 <option value="document">Wajib Dokumen File Mandiri (PDF, DOCX, DOC)</option>
+              ) : activeTask?.expectedFormat === "link" ? (
+                 <option value="link">Wajib Tautan Luar / Link URL (Drive, Github)</option>
+              ) : (
+                <>
+                  <option value="image">Gambar / File Foto (PNG, JPG, JPEG)</option>
+                  <option value="document">Dokumen File Mandiri (PDF, DOCX, DOC)</option>
+                  <option value="link">Tautan Luar / Link URL (Google Drive, GitHub, Notion)</option>
+                </>
+              )}
             </select>
           </label>
 
-          {/* RENDER COMPONENT SECARA KONDISIONAL BERDASARKAN TIPE MEDIA */}
-          {submissionType === "link" ? (
+          {effectiveSubmissionType === "link" ? (
             <label className="block space-y-1 animate-revealUp">
               <span className="text-sm text-[#D5C757]">Masukkan Link URL Pengerjaan Tugas (Wajib Diisi)</span>
               <input
@@ -303,7 +333,7 @@ export default function TasksPage() {
               <span className="text-sm text-[#d8a75b]">Unggah Lampiran Berkas File Tugas (Wajib Diisi)</span>
               <input
                 type="file"
-                accept={submissionType === "image" ? "image/*" : ".pdf,.doc,.docx"}
+                accept={effectiveSubmissionType === "image" ? "image/*" : ".pdf,.doc,.docx"}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEvidenceFile(e.target.files?.[0] ?? null)}
                 disabled={isTaskGateClosed}
                 className="w-full rounded-lg border border-white/25 bg-black/20 px-3 py-2 text-[#d8d3c6] cursor-pointer file:rounded file:border-0 file:bg-[#084D58] file:text-white file:px-2 file:py-0.5 file:text-xs"
@@ -323,7 +353,6 @@ export default function TasksPage() {
             />
           </label>
 
-          {/* TOMBOL BERGANTI SECARA ADAPTIF DAN OTOMATIS BERDASARKAN HASIL SCAN REAL-TIME DATABASE */}
           <button 
             type="submit" 
             disabled={isTaskGateClosed || isLoading} 
@@ -333,9 +362,11 @@ export default function TasksPage() {
           </button>
         </form>
 
-        {saveMessage ? (
-          <p className="mt-3 rounded-lg border border-[#d8a75b]/40 bg-[#d8a75b]/12 px-3 py-2 text-sm text-[#f7f0e8]">{saveMessage}</p>
-        ) : null}
+        {saveMessage && (
+          <div className={`mt-4 p-3 rounded-lg border font-bold text-sm tracking-wide animate-revealDown ${saveMessage.startsWith("✅") ? 'bg-teal-900/40 border-teal-500 text-teal-400' : saveMessage.startsWith("❌") ? 'bg-[#CE4A2D]/20 border-[#CE4A2D] text-[#CE4A2D]' : 'bg-[#d8a75b]/12 border-[#d8a75b]/40 text-[#f7f0e8]'}`}>
+            {saveMessage}
+          </div>
+        )}
       </article>
     </section>
   );
