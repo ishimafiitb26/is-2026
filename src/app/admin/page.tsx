@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, FormEvent } from "react";
+import React, { useEffect, useState, FormEvent, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDoc, doc, onSnapshot, setDoc, addDoc, query, orderBy, collection } from "firebase/firestore";
 import { useI18n } from "@/components/I18nProvider";
@@ -40,7 +40,6 @@ interface AdminTask extends Task {
   taskFileUrl?: string;
   taskFilePublicId?: string;
   fileName?: string;
-  expectedFormat?: string; // TAMBAHAN: Menyimpan opsi format yang diminta Admin
 }
 
 interface HandbookUploadRecord {
@@ -58,7 +57,8 @@ interface AdminAnnouncement extends Announcement {
 
 interface AdminSubmission extends TaskSubmission {
   nim?: string;
-  submissionType?: string; // TAMBAHAN: Untuk memunculkan label tipe data di tabel
+  submittedBy?: string;
+  submissionType?: string;
   fileUrl?: string;
   fileName?: string;
 }
@@ -80,6 +80,9 @@ export default function AdminPage() {
   const { t } = useI18n();
   const { role, loading, user } = useAuth();
   const router = useRouter();
+
+  // State Pengecekan Load Pertama
+  const [isFirstMetaLoad, setIsFirstMetaLoad] = useState<boolean>(true);
 
   const [targetInput, setTargetInput] = useState<string>("12");
   const [briefingInput, setBriefingInput] = useState<string>("");
@@ -104,7 +107,6 @@ export default function AdminPage() {
   const [newTaskDetail, setNewTaskDetail] = useState<string>("");
   const [newTaskDeadline, setNewTaskDeadline] = useState<string>("");
   const [newTaskIsoDeadline, setNewTaskIsoDeadline] = useState<string>("");
-  const [newTaskExpectedFormat, setNewTaskExpectedFormat] = useState<string>("all"); // TAMBAHAN: State dropdown request tipe file
   const [taskFile, setTaskFile] = useState<File | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState<boolean>(false);
 
@@ -128,6 +130,7 @@ export default function AdminPage() {
   const [adminAttendanceRecords, setAdminAttendanceRecords] = useState<AttendanceViewRow[]>([]);
 
   const [submissions, setSubmissions] = useState<Array<{ id: string } & AdminSubmission>>([]);
+  const [submissionTaskFilter, setSubmissionTaskFilter] = useState<string>("all");
   
   const [masterMeta, setMasterMeta] = useState<AdminEventMeta | null>(null);
 
@@ -149,9 +152,17 @@ export default function AdminPage() {
         setCountdownInput(meta.countdownText || "");
         setScheduleInput(meta.todaySchedule || "");
         setActiveOsjurDay(meta.activeOsjurDay || "day_1");
+
+        // FIX UX DEADLINE: Auto-select hari deadline mengikuti "Hari Aktif" secara global
+        // Hanya jalan 1x saat admin baru membuka halaman ini agar tidak riset ke Day 1
+        if (isFirstMetaLoad && meta.activeOsjurDay) {
+          setTargetDeadlineDay(meta.activeOsjurDay);
+          setAttendanceDayFilter(meta.activeOsjurDay);
+          setIsFirstMetaLoad(false);
+        }
       }
     });
-  }, [role]);
+  }, [role, isFirstMetaLoad]);
 
   useEffect(() => {
     if (!masterMeta) return;
@@ -161,9 +172,9 @@ export default function AdminPage() {
     const akhirVal = masterMeta[`${targetDeadlineDay}_dday_akhir_deadline`];
 
     const timer = setTimeout(() => {
-      setCurrentH1Deadline(h1Val ? String(h1Val) : "");
-      setCurrentAwalDeadline(awalVal ? String(awalVal) : "");
-      setCurrentAkhirDeadline(akhirVal ? String(akhirVal) : "");
+      setCurrentH1Deadline(typeof h1Val === "string" ? h1Val : "");
+      setCurrentAwalDeadline(typeof awalVal === "string" ? awalVal : "");
+      setCurrentAkhirDeadline(typeof akhirVal === "string" ? akhirVal : "");
     }, 0);
 
     return () => clearTimeout(timer);
@@ -205,15 +216,22 @@ export default function AdminPage() {
     };
   }, [role]);
 
+  const filteredSubmissions = useMemo(() => {
+    if (submissionTaskFilter === "all") return submissions;
+    return submissions.filter((sub) => sub.taskId === submissionTaskFilter);
+  }, [submissions, submissionTaskFilter]);
+
   const downloadSubmissionsCsv = () => {
-    const headers = ["NIM", "Task ID", "Task Title", "Note/Message", "File URL"];
-    const rows = submissions.map((s) => [
-      s.nim || "N/A",
-      s.taskId || "N/A",
-      s.taskTitle || "N/A",
-      s.note || "-",
-      s.fileUrl || ""
-    ]);
+    const headers = ["NIM", "Task ID", "Note/Message", "File URL"];
+    const rows = filteredSubmissions.map((s) => {
+      const rescuedNIM = s.nim || (s.submittedBy ? s.submittedBy.split("@")[0] : "N/A");
+      return [
+        rescuedNIM,
+        s.taskId || "N/A",
+        s.note || "-",
+        s.fileUrl || ""
+      ];
+    });
 
     const csvContent = [headers, ...rows]
       .map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
@@ -222,7 +240,8 @@ export default function AdminPage() {
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `recap_submissions_${Date.now()}.csv`;
+    const safeName = submissionTaskFilter === "all" ? "semua_tugas" : submissionTaskFilter;
+    link.download = `rekap_tugas_${safeName}_${Date.now()}.csv`;
     link.click();
   };
 
@@ -334,7 +353,6 @@ export default function AdminPage() {
           detail,
           deadline,
           isoDeadline: newTaskIsoDeadline,
-          expectedFormat: newTaskExpectedFormat, // Inject format requirement
           taskFileUrl: taskFileUrl || currentTask?.taskFileUrl || "",
           taskFilePublicId: taskFilePublicId || currentTask?.taskFilePublicId || "",
           fileName: fileName || currentTask?.fileName || "",
@@ -349,7 +367,6 @@ export default function AdminPage() {
           detail,
           deadline,
           isoDeadline: newTaskIsoDeadline,
-          expectedFormat: newTaskExpectedFormat, // Inject format requirement
           isActive: true,
           taskFileUrl,
           taskFilePublicId,
@@ -360,7 +377,7 @@ export default function AdminPage() {
         setAdminMessage("Tugas unik baru berhasil dirilis.");
       }
 
-      setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setNewTaskExpectedFormat("all"); setTaskFile(null); setEditingTaskId(null);
+      setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setTaskFile(null); setEditingTaskId(null);
     } catch (error: unknown) {
       setAdminMessage(`Failure: ${error instanceof Error ? error.message : "Error"}`);
     } finally {
@@ -560,19 +577,6 @@ export default function AdminPage() {
             </label>
           </div>
 
-          {/* TAMBAHAN: DROPDOWN REQUEST TIPE FILE DARI ADMIN */}
-          <div className="grid gap-3 sm:grid-cols-2 pt-2">
-            <label className="block space-y-1">
-              <span className="text-[11px] text-[#D5C757] font-semibold">Tipe File Yang Diminta (Wajib)</span>
-              <select value={newTaskExpectedFormat} onChange={(e) => setNewTaskExpectedFormat(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none cursor-pointer">
-                <option value="all">Bebas (Gambar / Dokumen / Link)</option>
-                <option value="image">Wajib Gambar Saja (PNG/JPG)</option>
-                <option value="document">Wajib Dokumen Saja (PDF/DOCX)</option>
-                <option value="link">Wajib Link Tautan Saja</option>
-              </select>
-            </label>
-          </div>
-
           <div className="pt-1">
             <label className="block text-xs text-[#D5C757] mb-1">📄 {t("Task File (PDF/DOC)")}</label>
             <input type="file" onChange={(e) => setTaskFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
@@ -580,7 +584,7 @@ export default function AdminPage() {
           
           <div className="flex gap-2">
             <button onClick={handleSaveTaskAction} disabled={isCreatingTask} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingTaskId ? "Update Mission" : "Deploy Mission"}</button>
-            {editingTaskId && <button type="button" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); setNewTaskExpectedFormat("all"); }} className="nav-chip text-xs">Batal</button>}
+            {editingTaskId && <button type="button" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); }} className="nav-chip text-xs">Batal</button>}
           </div>
           
           <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
@@ -588,7 +592,7 @@ export default function AdminPage() {
               <div key={tk.id} className="p-3 bg-black/15 border border-white/10 rounded-xl flex justify-between items-center text-xs">
                 <span className="font-medium text-[#F2EDEC] truncate max-w-[200px]">{tk.taskId} - {tk.title}</span>
                 <div className="flex gap-3">
-                  <button onClick={() => { setEditingTaskId(tk.id); setNewTaskTitle(tk.title); setNewTaskDetail(tk.detail); setNewTaskDeadline(tk.deadline); setNewTaskIsoDeadline(tk.isoDeadline || ""); setNewTaskExpectedFormat(tk.expectedFormat || "all"); }} className="text-teal-400 font-bold">Edit</button>
+                  <button onClick={() => { setEditingTaskId(tk.id); setNewTaskTitle(tk.title); setNewTaskDetail(tk.detail); setNewTaskDeadline(tk.deadline); setNewTaskIsoDeadline(tk.isoDeadline || ""); }} className="text-teal-400 font-bold">Edit</button>
                   <button onClick={() => deleteTask(tk.id)} className="text-[#CE4A2D] font-bold">Delete</button>
                 </div>
               </div>
@@ -651,16 +655,37 @@ export default function AdminPage() {
           <input value={newAnnouncementTitle} onChange={(e) => setNewAnnouncementTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white" />
           <textarea value={newAnnouncementContent} onChange={(e) => setNewAnnouncementContent(e.target.value)} placeholder="Ketik isi body pengumuman pakai simbol di atas..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono" rows={3} />
           <input type="file" accept="image/*,application/pdf" onChange={(e) => setAnnouncementPosterFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
-          <div className="flex gap-2"><input value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Label" className="w-1/3 bg-[#0F282F] p-1 text-xs text-white" /><input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="URL" className="w-2/3 bg-[#0F282F] p-1 text-xs text-white" /><button type="button" onClick={addLink} className="nav-chip text-xs">Attach</button></div>
           
+          {/* BAGIAN TAMBAHAN LINK */}
           <div className="flex gap-2">
-            <button onClick={handleSaveAnnouncementAction} className="cta-btn w-full py-2 text-xs uppercase font-bold">{editingAnnId ? "Update Broadcast" : "Publish Broadcast"}</button>
+            <input value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Label" className="w-1/3 bg-[#0F282F] rounded-lg p-2 text-xs text-white border border-white/10" />
+            <input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="URL" className="w-2/3 bg-[#0F282F] rounded-lg p-2 text-xs text-white border border-white/10" />
+            <button type="button" onClick={addLink} className="nav-chip text-xs">Attach</button>
+          </div>
+          
+          {/* FIX UX BROADCAST: TAMPILAN PREVIEW LINK YANG SUDAH DI-ATTACH */}
+          {newAnnouncementLinks.length > 0 && (
+            <div className="mt-2 p-3 bg-black/20 rounded-xl border border-white/5 space-y-2 animate-revealUp">
+              <p className="text-[10px] text-[#D5C757] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span>🔗</span> Attached Links Preview:
+              </p>
+              {newAnnouncementLinks.map((link, index) => (
+                <div key={index} className="flex justify-between items-center bg-[#0F282F] border border-white/10 p-2 rounded-lg text-[11px] text-white">
+                  <span className="truncate flex-1">[{link.label}] - {link.url}</span>
+                  <button type="button" onClick={() => removeLink(index)} className="text-[#CE4A2D] font-bold px-2.5 py-1 hover:bg-[#CE4A2D]/20 rounded-lg transition ml-2 shrink-0">X</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-2">
+            <button onClick={handleSaveAnnouncementAction} className="cta-btn w-full py-2.5 text-xs uppercase font-bold">{editingAnnId ? "Update Broadcast" : "Publish Broadcast"}</button>
             {editingAnnId && <button type="button" onClick={() => { setEditingAnnId(null); setNewAnnouncementTitle(""); setNewAnnouncementContent(""); setNewAnnouncementLinks([]); }} className="nav-chip text-xs">Batal</button>}
           </div>
 
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto pt-2 border-t border-white/10">
             {announcements.map((a) => (
-              <div key={a.id} className="p-2 bg-black/10 border border-white/5 rounded-lg flex justify-between items-center text-xs text-white">
+              <div key={a.id} className="p-3 bg-black/10 border border-white/5 rounded-xl flex justify-between items-center text-xs text-white">
                 <span className="truncate max-w-[200px]">{a.title}</span>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => { setEditingAnnId(a.id); setNewAnnouncementTitle(a.title); setNewAnnouncementContent(a.content); setNewAnnouncementLinks(a.links || []); }} className="text-teal-400 font-bold">Edit</button>
@@ -673,20 +698,29 @@ export default function AdminPage() {
       </div>
 
       <article className="panel p-5 rounded-2xl border border-[#084D58]/30">
-        <div className="flex justify-between border-b border-white/10 pb-2 mb-2">
+        <div className="flex justify-between items-center border-b border-white/10 pb-3 mb-3 flex-wrap gap-2">
           <h2 className="font-heading text-xl text-white">{t("Submissions & Grading")}</h2>
-          <button type="button" onClick={downloadSubmissionsCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Submissions CSV</button>
+          <div className="flex gap-2 items-center">
+            <button type="button" onClick={downloadSubmissionsCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Filtered CSV</button>
+            
+            <select value={submissionTaskFilter} onChange={(e) => setSubmissionTaskFilter(e.target.value)} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer max-w-[150px] sm:max-w-[200px] truncate">
+              <option value="all">Semua Tugas</option>
+              {tasks.map((tk) => (
+                <option key={tk.id} value={tk.taskId}>{tk.taskId} - {tk.title}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="space-y-2 max-h-60 overflow-y-auto text-xs text-white">
-          {submissions.length > 0 ? (
-            submissions.map((sub) => (
-              <div key={sub.id} className="p-3 bg-black/20 rounded-xl border border-white/5 flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-[#D5C757]">{sub.taskId} • {sub.taskTitle}</p>
-                  <p className="font-mono text-[10px] text-[#aaa391] mt-0.5">NIM Peserta: {sub.nim}</p>
+
+        <div className="space-y-2 max-h-60 overflow-y-auto text-xs text-white pr-2">
+          {filteredSubmissions.length > 0 ? (
+            filteredSubmissions.map((sub) => (
+              <div key={sub.id} className="p-3 bg-black/20 rounded-xl border border-white/5 flex justify-between items-center hover:bg-black/40 transition">
+                <div className="truncate">
+                  <p className="font-bold text-[#D5C757] truncate">{sub.taskId} • {sub.taskTitle}</p>
+                  <p className="font-mono text-[10px] text-[#aaa391] mt-0.5">NIM Peserta: {sub.nim || (sub.submittedBy ? sub.submittedBy.split("@")[0] : "N/A")}</p>
                 </div>
-                {/* TAMBAHAN: Tombol Admin Buka Tautan/File Langsung */}
-                <div className="flex flex-col items-end gap-1.5">
+                <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
                   <div className="flex gap-2 items-center">
                     {sub.submissionType && (
                       <span className="text-[9px] uppercase border border-white/20 px-1.5 py-0.5 rounded text-[#aaa391]">{sub.submissionType}</span>
@@ -702,7 +736,9 @@ export default function AdminPage() {
               </div>
             ))
           ) : (
-            <p className="p-2 text-xs italic text-[#aaa391]">Belum ada penugasan maba yang masuk ke database.</p>
+            <p className="p-4 text-center text-[#aaa391] italic bg-black/10 rounded-lg border border-white/5">
+              Belum ada penugasan masuk untuk filter ID tugas ini.
+            </p>
           )}
         </div>
       </article>

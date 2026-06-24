@@ -44,6 +44,7 @@ interface H1ConfirmationStructure {
   symptoms?: string;
   tookMedicine?: string;
   medicineName?: string;
+  evidenceUrl?: string; // TAMBAHAN: Menyimpan link bukti surat izin
 }
 
 interface FirebaseMetaConfig {
@@ -55,25 +56,28 @@ interface FirebaseMetaConfig {
 export default function AttendancePage() {
   const { t } = useI18n();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"dday_awal" | "dday_akhir" | "h1">("dday_awal");
+  
+  // PERBAIKAN 3: Default tab diatur ke "h1" agar muncul pertama kali
+  const [activeTab, setActiveTab] = useState<"h1" | "dday_awal" | "dday_akhir">("h1");
 
-  // Input state penampung data formulir utama maba
   const [fullName, setFullName] = useState<string>("");
   const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
   const [statusH1, setStatusH1] = useState<string>("hadir tepat waktu");
   const [evidenceText, setEvidenceText] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  
+  // PERBAIKAN 2: State khusus untuk file surat izin form H-1
+  const [evidenceFileH1, setEvidenceFileH1] = useState<File | null>(null);
+  
   const [feedbackText, setFeedbackText] = useState<string>("");
 
-  // Input state penampung data skrining medis lapangan maba
   const [condition, setCondition] = useState<string>("Tidak sakit");
   const [illnessName, setIllnessName] = useState<string>("");
   const [symptoms, setSymptoms] = useState<string>("");
   const [tookMedicine, setTookMedicine] = useState<string>("Belum");
   const [medicineName, setMedicineName] = useState<string>("");
 
-  // Storage array internal penampung data kalkulasi real-time metrics
   const [awalRecords, setAwalRecords] = useState<AttendanceAwalStructure[]>([]);
   const [akhirRecords, setFeedbackRecords] = useState<AttendanceAkhirStructure[]>([]);
   const [h1Records, setH1Records] = useState<H1ConfirmationStructure[]>([]);
@@ -81,10 +85,10 @@ export default function AttendancePage() {
   const [expectedParticipants, setExpectedParticipants] = useState<number>(0);
   const [firebaseMeta, setFirebaseMeta] = useState<FirebaseMetaConfig | null>(null);
   const [saveMessage, setSaveMessage] = useState<string>("");
+  
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const studentNIM = user?.email ? user.email.split("@")[0] : "";
-
-  // Hari presensi ditarik mutlak dari pengaturan Admin agar maba tidak bisa ngintip day
   const selectedDay = typeof firebaseMeta?.activeOsjurDay === "string" ? firebaseMeta.activeOsjurDay : "day_1";
 
   useEffect(() => {
@@ -92,32 +96,20 @@ export default function AttendancePage() {
     const targetDayNumber = selectedDay.split("_")[1];
 
     const silentErrorHandler = (err: Error) => {
-      console.debug("Firebase alignment intersection bypassed safely:", err.message);
+      console.debug("Firebase alignment bypassed:", err.message);
     };
 
-    const unsubAwal = onSnapshot(
-      collection(db, `attendance_day_${targetDayNumber}`), 
-      (snap) => {
-        setAwalRecords(snap.docs.map((d) => d.data() as AttendanceAwalStructure));
-      }, 
-      silentErrorHandler
-    );
+    const unsubAwal = onSnapshot(collection(db, `attendance_day_${targetDayNumber}`), (snap) => {
+      setAwalRecords(snap.docs.map((d) => d.data() as AttendanceAwalStructure));
+    }, silentErrorHandler);
 
-    const unsubAkhir = onSnapshot(
-      collection(db, `attendance_akhir_day_${targetDayNumber}`), 
-      (snap) => {
-        setFeedbackRecords(snap.docs.map((d) => d.data() as AttendanceAkhirStructure));
-      }, 
-      silentErrorHandler
-    );
+    const unsubAkhir = onSnapshot(collection(db, `attendance_akhir_day_${targetDayNumber}`), (snap) => {
+      setFeedbackRecords(snap.docs.map((d) => d.data() as AttendanceAkhirStructure));
+    }, silentErrorHandler);
 
-    const unsubH1 = onSnapshot(
-      collection(db, `h1_confirmations_day_${targetDayNumber}`), 
-      (snap) => {
-        setH1Records(snap.docs.map((d) => d.data() as H1ConfirmationStructure));
-      }, 
-      silentErrorHandler
-    );
+    const unsubH1 = onSnapshot(collection(db, `h1_confirmations_day_${targetDayNumber}`), (snap) => {
+      setH1Records(snap.docs.map((d) => d.data() as H1ConfirmationStructure));
+    }, silentErrorHandler);
 
     const unsubMeta = onSnapshot(eventMetaRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -135,12 +127,11 @@ export default function AttendancePage() {
     };
   }, [user, selectedDay]);
 
-  // Pencocokan Gerbang Close Gate Mengikuti Parameter Hari yang Dipilih Admin
   const isGateClosed = useMemo(() => {
     if (!firebaseMeta) return false;
-    let fieldKey = `${selectedDay}_dday_awal_deadline`;
+    let fieldKey = `${selectedDay}_h1_deadline`;
+    if (activeTab === "dday_awal") fieldKey = `${selectedDay}_dday_awal_deadline`;
     if (activeTab === "dday_akhir") fieldKey = `${selectedDay}_dday_akhir_deadline`;
-    if (activeTab === "h1") fieldKey = `${selectedDay}_h1_deadline`;
 
     const targetDeadline = firebaseMeta[fieldKey];
     if (!targetDeadline || typeof targetDeadline !== "string") return false;
@@ -174,14 +165,20 @@ export default function AttendancePage() {
 
   const handleDDayAwalSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isGateClosed) return;
+    if (isGateClosed || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
 
     if (!evidenceFile) {
       setSaveMessage("❌ GAGAL: Anda wajib melampirkan berkas foto bukti dokumentasi fisik kehadiran sebelum submit!");
       return;
     }
+    
+    if (evidenceFile.size > 5 * 1024 * 1024) {
+      setSaveMessage("❌ GAGAL: Ukuran file foto Anda terlalu besar (Maks 5MB). Silakan kompres file Anda terlebih dahulu.");
+      return;
+    }
 
+    setIsLoading(true);
     setSaveMessage("⏳ Sedang memproses dan mencadangkan data presensi Anda ke server...");
 
     try {
@@ -210,13 +207,17 @@ export default function AttendancePage() {
       setEvidenceFile(null);
     } catch (err: unknown) {
       setSaveMessage(`❌ GAGAL: ${err instanceof Error ? err.message : "Terjadi kesalahan jaringan."}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDDayAkhirSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isGateClosed) return;
+    if (isGateClosed || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
+    
+    setIsLoading(true);
     setSaveMessage("⏳ Memproses otentikasi data check-out harian Anda...");
 
     try {
@@ -234,16 +235,37 @@ export default function AttendancePage() {
       setFeedbackText("");
     } catch (err: unknown) {
       setSaveMessage(`❌ GAGAL: ${err instanceof Error ? err.message : "Terjadi kesalahan jaringan."}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleH1Submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isGateClosed) return;
+    if (isGateClosed || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
-    setSaveMessage("⏳ Mengenkripsi dan mengirimkan berkas skrining medis Anda ke tim kesehatan...");
+
+    // PERBAIKAN 2: Validasi wajib lampirkan surat jika status bukan hadir tepat waktu
+    if (statusH1 !== "hadir tepat waktu" && !evidenceFileH1) {
+      setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto) karena tidak hadir tepat waktu!");
+      return;
+    }
+
+    if (evidenceFileH1 && evidenceFileH1.size > 5 * 1024 * 1024) {
+      setSaveMessage("❌ GAGAL: Ukuran file surat keterangan terlalu besar (Maks 5MB). Silakan kompres file Anda.");
+      return;
+    }
+
+    setIsLoading(true);
+    setSaveMessage("⏳ Mengenkripsi dan mengirimkan berkas konfirmasi H-1 Anda...");
 
     try {
+      let evidenceUrl = "";
+      if (evidenceFileH1) {
+        const upload = await uploadToCloudinary(evidenceFileH1);
+        evidenceUrl = upload.secure_url;
+      }
+
       await setDoc(doc(db, `h1_confirmations_day_${selectedDay.split("_")[1]}`, studentNIM), {
         fullName: fullName.trim(),
         nim: studentNIM,
@@ -254,20 +276,23 @@ export default function AttendancePage() {
         symptoms: condition === "Sedang sakit" ? symptoms.trim() || "-" : "-",
         tookMedicine: condition === "Sedang sakit" ? tookMedicine : "-",
         medicineName: (condition === "Sedang sakit" && tookMedicine === "Sudah") ? medicineName.trim() || "-" : "-",
+        evidenceUrl: evidenceUrl || "-", // Menyimpan link file jika ada
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
-      setSaveMessage("✅ BERHASIL: Paket Data Skrining Kesehatan H-1 Anda resmi terkunci di sistem!");
+      setSaveMessage("✅ BERHASIL: Paket Data Konfirmasi H-1 Anda resmi terkunci di sistem!");
       setFullName("");
       setIllnessName("");
       setSymptoms("");
       setMedicineName("");
+      setEvidenceFileH1(null);
     } catch (err: unknown) {
       setSaveMessage(`❌ GAGAL: ${err instanceof Error ? err.message : "Terjadi kesalahan jaringan."}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // FUNGSI RENDER NOTIFIKASI AMAN (Bukan Nested Component, Jadi Bebas Eror Garis Merah)
   const renderNotificationBanner = () => {
     if (!saveMessage) return null;
     const isSuccess = saveMessage.startsWith("✅");
@@ -300,14 +325,14 @@ export default function AttendancePage() {
               {t("Operations Presence Hub")}
             </h1>
             <p className="text-[11px] sm:text-xs text-[#aaa391] leading-relaxed break-words whitespace-normal">
-              Selamat datang! Pastikan presensi terisi sebelum batas waktu berakhir.
+              Selamat datang di stasiun pencatatan log kehadiran terpadu. Pastikan identitas dan kelengkapan dokumen terisi akurat sebelum gerbang batas waktu pengumpulan dikunci otomatis.
             </p>
           </div>
 
           <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0 min-w-0">
             <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
-              Target Hari:
+              Target Hari Operasional Aktif:
             </label>
             <div className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
               {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
@@ -315,31 +340,34 @@ export default function AttendancePage() {
           </div>
         </header>
 
-        {/* TAB BUTTON NAVIGATION */}
+        {/* PERBAIKAN 4: UI TAB KINI JAUH LEBIH JELAS & KONTRAS (Tab H-1 dipindah ke paling depan) */}
         <nav className="flex flex-nowrap border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
+          
+          <button
+            type="button"
+            onClick={() => { setActiveTab("h1"); setSaveMessage(""); }}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "h1" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6V20C3.01 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4H19ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>
+            📅 H-1 Confirmation & Medis
+          </button>
+
           <button
             type="button"
             onClick={() => { setActiveTab("dday_awal"); setSaveMessage(""); }}
-            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-colors duration-200 ${activeTab === "dday_awal" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/30" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_awal" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M12 2L2 22H22L12 2ZM12 6L18.8 19.5H5.2L12 6ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
             🚀 Check-In (Absen Awal)
           </button>
+
           <button
             type="button"
             onClick={() => { setActiveTab("dday_akhir"); setSaveMessage(""); }}
-            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-colors duration-200 ${activeTab === "dday_akhir" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/30" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_akhir" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M14.5 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V7.5L14.5 2ZM18 20H6V4H13.5V8.5H18V20ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
             🏁 Check-Out (Feedback Akhir)
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("h1"); setSaveMessage(""); }}
-            className={`shrink-0 flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-colors duration-200 ${activeTab === "h1" ? "bg-[#084D58] text-[#D5C757] shadow-lg border border-[#D5C757]/30" : "text-[#aaa391] hover:text-[#F2EDEC] hover:bg-white/5"}`}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6V20C3.01 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4H19ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>
-            📅 H-1 Confirmation & Medis
           </button>
         </nav>
 
@@ -353,7 +381,7 @@ export default function AttendancePage() {
               </span>
             </div>
             <p className="text-[10px] sm:text-xs text-[#aaa391] mt-2 sm:mt-1 break-words whitespace-normal px-2">
-              Sesi presensi telah berakhir.
+              Sesi formulir pengumpulan log digital untuk hari operasional ini telah habis masa berlakunya.
             </p>
           </div>
         )}
@@ -361,120 +389,18 @@ export default function AttendancePage() {
         {/* LAYOUT BODY FORM GRID */}
         <div className="grid gap-6 lg:gap-8 xl:grid-cols-[1fr_340px] col-span-full items-start w-full min-w-0">
           
-          {/* TAB AREA FORMULIR 1: DDAY CHECK-IN (AWAL) */}
-          {activeTab === "dday_awal" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0">
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Absensi Check-In</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lakukan perekaman data kehadiran saat memasuki area ring utama.</p>
-                </div>
-                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757] text-sm sm:text-base">
-                  🚀
-                </div>
-              </div>
-
-              {renderNotificationBanner()}
-
-              <form onSubmit={handleDDayAwalSubmit} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
-                  <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM (Otomatis)</span>
-                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
-                  </label>
-                  <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
-                  </label>
-                </div>
-
-                <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
-                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
-                    <option value="hadir">Hadir Tepat Waktu</option>
-                    <option value="menyusul">Hadir Menyusul</option>
-                    <option value="meninggalkan">Izin Meninggalkan</option>
-                    <option value="tidak hadir">Tidak Hadir</option>
-                  </select>
-                </label>
-
-                <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan / Keterangan Bukti</span>
-                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
-                </label>
-
-                <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
-                  <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
-                    <span>🖼️ Bukti Dokumentasi (WAJIB DIISI)</span>
-                  </label>
-                  <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form absensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi kegiatan atau scan surat izin resmi!</p>
-                  
-                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={isGateClosed} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#084D58] file:text-[#D5C757] file:hover:bg-[#084D58]/80 file:transition" />
-                </div>
-
-                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer break-words whitespace-normal">Submit Presensi Awal</button>
-              </form>
-            </article>
-          )}
-
-          {/* TAB AREA FORMULIR 2: DDAY CHECK-OUT (AKHIR) */}
-          {activeTab === "dday_akhir" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0">
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Absensi Check-Out & Evaluasi</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik harian.</p>
-                </div>
-                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
-                  🏁
-                </div>
-              </div>
-
-              {renderNotificationBanner()}
-
-              <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
-                  <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM (Otomatis)</span>
-                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
-                  </label>
-                  <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
-                  </label>
-                </div>
-
-                <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
-                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
-                    <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
-                  </select>
-                </label>
-
-                <label className="block space-y-1">
-                  <span className="text-[11px] sm:text-xs text-[#D5C757] font-bold uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
-                    <span className="mt-0.5">💬</span> 
-                    <span>Feedback untuk Kesan, Pesan, dan Evaluasi DAY hari ini</span>
-                  </span>
-                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed} placeholder="Tuliskan feedback berupa kesan, pesan, kritik, saran, atau hal penting tentang hari ini..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
-                </label>
-
-                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal">Submit Check-Out</button>
-              </form>
-            </article>
-          )}
-
-          {/* TAB AREA FORMULIR 3: H-1 CONFIRMATION & HEALTH DATA */}
+          {/* PERBAIKAN 5: TAB AREA FORMULIR H-1 DIMUNCULKAN PERTAMA SESUAI URUTAN BARU */}
           {activeTab === "h1" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0">
+            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
+              {/* INDIKATOR TEGAS AGAR MABA TIDAK SALAH ISI FORM */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
+
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F2EDEC] truncate">Form Kesiapan & Skrining Riwayat Medis</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi fisik</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Konfirmasi Kehadiran Day & Kondisi Kesehatan</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi fisik vital untuk pemetaan logistik tim medis lapangan.</p>
                 </div>
-                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#084D58]/30 border border-[#084D58]/60 flex items-center justify-center text-[#D5C757]">
+                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757]">
                   📅
                 </div>
               </div>
@@ -488,34 +414,47 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kehadiran</span>
-                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
-                    <option value="hadir menyusul">Hadir Menyusul</option>
-                    <option value="izin meninggalkan">Izin Meninggalkan</option>
-                    <option value="tidak hadir">Tidak Hadir</option>
+                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                    <option value="hadir tepat waktu">Hadir Tepat Waktu Sesuai Instruksi Pagi</option>
+                    <option value="hadir menyusul">Hadir Menyusul (Tabrakan Jadwal Akademik)</option>
+                    <option value="izin meninggalkan">Izin Meninggalkan Lapangan Lebih Cepat</option>
+                    <option value="tidak hadir">Mutlak Berhalangan Hadir (Sakit Keras/Izin)</option>
                   </select>
                 </label>
+
+                {/* PERBAIKAN 2: FITUR UPLOAD SURAT IZIN KHUSUS UNTUK YANG TIDAK HADIR TEPAT WAKTU */}
+                {statusH1 !== "hadir tepat waktu" && (
+                  <div className="bg-[#CE4A2D]/10 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0 animate-revealDown">
+                    <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                      <span>🖼️ Upload Bukti Keterangan / Surat Izin (WAJIB)</span>
+                    </label>
+                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Karena Anda tidak dapat hadir tepat waktu, Anda diwajibkan melampirkan berkas bukti pendukung (PDF/Foto). Maksimal 5MB.</p>
+                    
+                    <input type="file" accept="image/*,.pdf" onChange={(e) => setEvidenceFileH1(e.target.files?.[0] || null)} disabled={isGateClosed || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#CE4A2D] file:text-white file:hover:bg-[#CE4A2D]/80 file:transition" />
+                  </div>
+                )}
 
                 {/* SEKTOR FORM SKRINING KESEHATAN PITA PUTIH */}
                 <div className="border-t border-[#084D58]/30 pt-4 space-y-3">
                   <div className="space-y-1">
                     <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
                       <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D5C757] shrink-0 mt-1 sm:mt-0.5" />
-                      <span>Sektor Skrining Medis Lapangan</span>
+                      <span>Sektor Skrining Medis Lapangan (Pita Putih)</span>
                     </h3>
                     <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan anda demi keselamatan darurat selama kegiatan</p>
                   </div>
 
                   <label className="block space-y-1">
                     <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Tubuh Saat Ini?</span>
-                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
+                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
                       <option value="Tidak sakit">Sehat</option>
                       <option value="Sedang sakit">Sedang Sakit</option>
                     </select>
@@ -527,18 +466,18 @@ export default function AttendancePage() {
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
                           <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Diagnosa / Riwayat Penyakit?</span>
-                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={isGateClosed} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                         <label className="block space-y-1 min-w-0">
                           <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala yang dialami?</span>
-                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={isGateClosed} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
                           <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Sedang Mengonsumsi Obat?</span>
-                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={isGateClosed} className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={isGateClosed || isLoading} className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                             <option value="Belum">Belum / Tidak Konsumsi Obat</option>
                             <option value="Sudah">Sudah Konsumsi Obat Medis</option>
                           </select>
@@ -547,7 +486,7 @@ export default function AttendancePage() {
                         {tookMedicine === "Sudah" && (
                           <label className="block space-y-1 animate-revealUp min-w-0">
                             <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Nama Obat Diminum:</span>
-                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={isGateClosed} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                           </label>
                         )}
                       </div>
@@ -555,7 +494,120 @@ export default function AttendancePage() {
                   )}
                 </div>
 
-                <button type="submit" disabled={isGateClosed} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal">Submit Konfirmasi H-1</button>
+                <button type="submit" disabled={isGateClosed || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
+                  {isLoading ? "Mengirim Data... ⏳" : "Submit Konfirmasi H-1"}
+                </button>
+              </form>
+            </article>
+          )}
+
+          {/* TAB AREA FORMULIR 2: DDAY CHECK-IN (AWAL) */}
+          {activeTab === "dday_awal" && (
+            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
+              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Absensi Check-In</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lakukan perekaman data kehadiran saat memasuki area ring utama.</p>
+                </div>
+                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757] text-sm sm:text-base">
+                  🚀
+                </div>
+              </div>
+
+              {renderNotificationBanner()}
+
+              <form onSubmit={handleDDayAwalSubmit} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM (Otomatis)</span>
+                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
+                  </label>
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
+                  </label>
+                </div>
+
+                <label className="block space-y-1">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
+                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
+                    <option value="hadir">Hadir Tepat Waktu</option>
+                    <option value="menyusul">Hadir Menyusul</option>
+                    <option value="meninggalkan">Izin Meninggalkan</option>
+                    <option value="tidak hadir">Tidak Hadir</option>
+                  </select>
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan Justifikasi / Keterangan Bukti</span>
+                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
+                </label>
+
+                <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
+                  <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                    <span>🖼️ Bukti Dokumentasi Fisik (MUTLAK WAJIB DIISI)</span>
+                  </label>
+                  <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form absensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi. Maksimal 5MB.</p>
+                  
+                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={isGateClosed || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#084D58] file:text-[#D5C757] file:hover:bg-[#084D58]/80 file:transition" />
+                </div>
+
+                <button type="submit" disabled={isGateClosed || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer break-words whitespace-normal">
+                  {isLoading ? "Mengirim Data... ⏳" : "Submit Presensi Awal"}
+                </button>
+              </form>
+            </article>
+          )}
+
+          {/* TAB AREA FORMULIR 3: DDAY CHECK-OUT (AKHIR) */}
+          {activeTab === "dday_akhir" && (
+            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
+              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Absensi Check-Out & Evaluasi</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik maba harian.</p>
+                </div>
+                <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757]">
+                  🏁
+                </div>
+              </div>
+
+              {renderNotificationBanner()}
+
+              <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
+                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
+                  </label>
+                  <label className="block space-y-1 min-w-0">
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                  </label>
+                </div>
+
+                <label className="block space-y-1">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
+                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                    <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
+                    <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
+                  </select>
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-[11px] sm:text-xs text-[#D5C757] font-bold uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
+                    <span className="mt-0.5">💬</span> 
+                    <span>Lembar Feedback, Evaluasi, & Insight Esensi Hari Ini</span>
+                  </span>
+                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Tuliskan kritik, saran, hambatan lapangan, atau intisari pemahaman materi yang Anda petik hari ini..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
+                </label>
+
+                <button type="submit" disabled={isGateClosed || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
+                  {isLoading ? "Mengirim Data... ⏳" : "Submit Check-Out"}
+                </button>
               </form>
             </article>
           )}
@@ -584,10 +636,10 @@ export default function AttendancePage() {
               )}
               {activeTab === "h1" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Estimasi Tepat:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Tepat Waktu:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
                   <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Sesi:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Absen Besok:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
                 </>
               )}
               

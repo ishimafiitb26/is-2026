@@ -164,7 +164,7 @@ export default function ExploreAreaPage() {
 
   const handleTaskSubmitAction = async (e: FormEvent, targetTask: TaskStructure) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || isUploadingSub) return;
 
     // Pengecekan Close Gate Sesaat Sebelum Submit (Antisipasi maba diam lama di halaman)
     const coreDeadline = targetTask.isoDeadline ? new Date(targetTask.isoDeadline).getTime() : 0;
@@ -183,8 +183,14 @@ export default function ExploreAreaPage() {
       return;
     }
 
+    // Validasi Ukuran File Maksimal 5MB agar tidak error saat koneksi Maba pelan
+    if (submissionFile && submissionFile.size > 5 * 1024 * 1024) {
+      setSubMessage("❌ Gagal: Ukuran file Anda kebesaran (Maksimal 5MB). Silakan kompres file Anda terlebih dahulu.");
+      return;
+    }
+
     setIsUploadingSub(true);
-    setSubMessage("⏳ Transmitting artifact packet to central base...");
+    setSubMessage("⏳ Sedang mengunggah dan mengunci data ke database pusat...");
 
     try {
       let finalizedUrl = "";
@@ -199,9 +205,13 @@ export default function ExploreAreaPage() {
         finalFileName = submissionFile.name;
       }
 
+      // FIX: Kita pastikan menambahkan field `nim` pada data kiriman maba
+      const studentNIM = user?.email ? user.email.split("@")[0] : "";
+
       await addDoc(taskSubmissionsCollectionRef, {
         taskId: targetTask.taskId,
         taskTitle: targetTask.title,
+        nim: studentNIM, // TAMBAHAN: Menyimpan NIM maba agar gampang dilacak Admin
         note: submissionNote.trim() || "-",
         fileUrl: finalizedUrl,
         fileName: finalFileName,
@@ -210,7 +220,7 @@ export default function ExploreAreaPage() {
         createdAt: getCurrentTimestamp()
       });
 
-      setSubMessage("✅ Misi terkunci! Lembar jawaban aman tersimpan.");
+      setSubMessage("✅ BERHASIL: Misi terkunci! Lembar jawaban Anda aman tersimpan.");
       setSubmissionFile(null);
       setSubmissionLink("");
       setSubmissionNote("");
@@ -219,10 +229,10 @@ export default function ExploreAreaPage() {
       setTimeout(() => {
         setActiveSubmitTaskId(null);
         setSubMessage("");
-      }, 2000);
+      }, 2500);
       
     } catch (err) {
-      setSubMessage("❌ Transmisi data gagal. Cek koneksi Anda.");
+      setSubMessage("❌ GAGAL: Transmisi terputus. Pastikan internet Anda stabil atau ukuran file sudah dikecilkan.");
     } finally {
       setIsUploadingSub(false);
     }
@@ -390,7 +400,7 @@ export default function ExploreAreaPage() {
                         <div>
                           <label className="block text-[11px] text-[#D5C757] mb-1">Pilih Format Media Pengumpulan</label>
                           <select
-                            value={submissionType || "image"} // FIX MUTLAK ERROR UNCONTROLLED INPUT
+                            value={submissionType || "image"}
                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { 
                               setSubmissionType(e.target.value as "image" | "document" | "link");
                               setSubmissionFile(null); 
@@ -421,7 +431,7 @@ export default function ExploreAreaPage() {
                             <label className="block text-[11px] text-[#D5C757] mb-1">Masukkan Link URL Pengerjaan Tugas (Wajib)</label>
                             <input
                               type="url"
-                              value={submissionLink || ""} // FIX MUTLAK ERROR UNCONTROLLED INPUT
+                              value={submissionLink || ""}
                               onChange={(e) => setSubmissionLink(e.target.value)}
                               placeholder="https://drive.google.com/drive/folders/..."
                               className="w-full bg-[#0F282F]/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757]"
@@ -430,7 +440,7 @@ export default function ExploreAreaPage() {
                           </div>
                         ) : (
                           <div>
-                            <label className="block text-[11px] text-[#D5C757] mb-1">Pilih File Berkas Jawaban (Wajib)</label>
+                            <label className="block text-[11px] text-[#D5C757] mb-1">Pilih File Berkas Jawaban (Maks 5MB)</label>
                             <input 
                               type="file" 
                               accept={submissionType === "image" ? "image/*" : ".pdf,.doc,.docx"}
@@ -444,7 +454,7 @@ export default function ExploreAreaPage() {
                         <div>
                           <label className="block text-[11px] text-[#D5C757] mb-1">Catatan Tambahan Opsional untuk Panitia</label>
                           <textarea
-                            value={submissionNote || ""} // FIX MUTLAK ERROR UNCONTROLLED INPUT
+                            value={submissionNote || ""}
                             onChange={(e) => setSubmissionNote(e.target.value)}
                             placeholder="Tulis nama, kelompok, atau pesan tambahan di sini..."
                             className="w-full bg-[#0F282F]/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757]"
@@ -462,7 +472,7 @@ export default function ExploreAreaPage() {
                       </form>
                       
                       {subMessage && (
-                        <div className={`mt-3 p-2 rounded-lg text-center font-mono text-[10px] sm:text-xs font-bold ${subMessage.startsWith("✅") ? 'text-teal-400 bg-teal-900/30' : 'text-[#CE4A2D] bg-[#CE4A2D]/10'}`}>
+                        <div className={`mt-3 p-3 rounded-lg text-center font-bold text-[11px] sm:text-xs tracking-wider animate-revealDown ${subMessage.startsWith("✅") ? 'text-teal-400 bg-teal-900/40 border border-teal-500' : 'text-[#CE4A2D] bg-[#CE4A2D]/20 border border-[#CE4A2D]'}`}>
                           {subMessage}
                         </div>
                       )}
