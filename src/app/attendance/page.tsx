@@ -335,7 +335,8 @@ export default function AttendancePage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
               DAY:
             </label>
-            <div className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
+            {/* FIX: Tambahkan key={selectedDay} di sini agar elemen ini di-reset paksa oleh React saat ganti hari, menghindari bentrok Google Translate */}
+            <div key={selectedDay} className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
               {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
             </div>
           </div>
