@@ -55,12 +55,20 @@ interface AdminAnnouncement extends Announcement {
   links?: Array<{ label: string; url: string }>;
 }
 
+// FIX MUTLAK: Mendefinisikan tipe data waktu Firestore secara spesifik (Anti-Any)
+interface FirestoreTimestamp {
+  seconds: number;
+  nanoseconds: number;
+  toDate?: () => Date;
+}
+
 interface AdminSubmission extends TaskSubmission {
   nim?: string;
   submittedBy?: string;
   submissionType?: string;
   fileUrl?: string;
   fileName?: string;
+  createdAt?: FirestoreTimestamp | Date | null | undefined;
 }
 
 interface AttendanceViewRow {
@@ -74,14 +82,37 @@ interface AttendanceViewRow {
   symptoms?: string;
   tookMedicine?: string;
   medicineName?: string;
+  evidenceUrl?: string;
+  createdAt?: FirestoreTimestamp | Date | null | undefined;
 }
+
+// FIX MUTLAK: Menggunakan tipe data spesifik sebagai argumen fungsi
+const formatTime = (ts: FirestoreTimestamp | Date | null | undefined): string => {
+  if (!ts) return "-";
+  
+  // Jika ts adalah objek Date bawaan Javascript
+  if (ts instanceof Date) {
+    return ts.toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + " WIB";
+  }
+
+  // Jika ts adalah objek Timestamp dari Firestore (punya method toDate)
+  if (typeof ts === 'object' && 'toDate' in ts && typeof ts.toDate === "function") {
+    return ts.toDate().toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + " WIB";
+  }
+
+  // Fallback: Jika ts hanya berupa objek raw Firestore (hanya punya seconds)
+  if (typeof ts === 'object' && 'seconds' in ts && typeof ts.seconds === 'number') {
+    return new Date(ts.seconds * 1000).toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + " WIB";
+  }
+
+  return "-";
+};
 
 export default function AdminPage() {
   const { t } = useI18n();
   const { role, loading, user } = useAuth();
   const router = useRouter();
 
-  // State Pengecekan Load Pertama
   const [isFirstMetaLoad, setIsFirstMetaLoad] = useState<boolean>(true);
 
   const [targetInput, setTargetInput] = useState<string>("12");
@@ -153,8 +184,6 @@ export default function AdminPage() {
         setScheduleInput(meta.todaySchedule || "");
         setActiveOsjurDay(meta.activeOsjurDay || "day_1");
 
-        // FIX UX DEADLINE: Auto-select hari deadline mengikuti "Hari Aktif" secara global
-        // Hanya jalan 1x saat admin baru membuka halaman ini agar tidak riset ke Day 1
         if (isFirstMetaLoad && meta.activeOsjurDay) {
           setTargetDeadlineDay(meta.activeOsjurDay);
           setAttendanceDayFilter(meta.activeOsjurDay);
@@ -222,14 +251,16 @@ export default function AdminPage() {
   }, [submissions, submissionTaskFilter]);
 
   const downloadSubmissionsCsv = () => {
-    const headers = ["NIM", "Task ID", "Note/Message", "File URL"];
+    // FITUR BARU: Tambahan Kolom Waktu Pengumpulan di CSV
+    const headers = ["NIM", "Task ID", "Note/Message", "File URL", "Waktu Pengumpulan"];
     const rows = filteredSubmissions.map((s) => {
       const rescuedNIM = s.nim || (s.submittedBy ? s.submittedBy.split("@")[0] : "N/A");
       return [
         rescuedNIM,
         s.taskId || "N/A",
         s.note || "-",
-        s.fileUrl || ""
+        s.fileUrl || "",
+        formatTime(s.createdAt)
       ];
     });
 
@@ -246,13 +277,21 @@ export default function AdminPage() {
   };
 
   const downloadAttendanceCsv = () => {
-    const headers = ["NIM", "Nama Lengkap", "Status Kehadiran", "Detail Catatan / Kondisi Medis"];
+    // FITUR BARU: Tambahan Kolom Waktu Presensi & Link Bukti di CSV
+    const headers = ["NIM", "Nama Lengkap", "Status Kehadiran", "Detail Catatan / Kondisi Medis", "Waktu Perekaman", "Link Bukti File"];
     const rows = adminAttendanceRecords.map((r) => {
       let detail = r.evidenceText || r.feedback || "-";
       if (attendanceTabFilter === "h1" && r.condition === "Sedang sakit") {
         detail = `Sakit: ${r.illnessName} | Gejala: ${r.symptoms} | Minum Obat: ${r.tookMedicine} (${r.medicineName})`;
       }
-      return [r.nim || "N/A", r.fullName || "N/A", r.status || "N/A", detail];
+      return [
+        r.nim || "N/A", 
+        r.fullName || "N/A", 
+        r.status || "N/A", 
+        detail, 
+        formatTime(r.createdAt), 
+        r.evidenceUrl || "-"
+      ];
     });
 
     const csvContent = [headers, ...rows]
@@ -656,14 +695,12 @@ export default function AdminPage() {
           <textarea value={newAnnouncementContent} onChange={(e) => setNewAnnouncementContent(e.target.value)} placeholder="Ketik isi body pengumuman pakai simbol di atas..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono" rows={3} />
           <input type="file" accept="image/*,application/pdf" onChange={(e) => setAnnouncementPosterFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
           
-          {/* BAGIAN TAMBAHAN LINK */}
           <div className="flex gap-2">
             <input value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} placeholder="Label" className="w-1/3 bg-[#0F282F] rounded-lg p-2 text-xs text-white border border-white/10" />
             <input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="URL" className="w-2/3 bg-[#0F282F] rounded-lg p-2 text-xs text-white border border-white/10" />
             <button type="button" onClick={addLink} className="nav-chip text-xs">Attach</button>
           </div>
           
-          {/* FIX UX BROADCAST: TAMPILAN PREVIEW LINK YANG SUDAH DI-ATTACH */}
           {newAnnouncementLinks.length > 0 && (
             <div className="mt-2 p-3 bg-black/20 rounded-xl border border-white/5 space-y-2 animate-revealUp">
               <p className="text-[10px] text-[#D5C757] font-bold uppercase tracking-wider flex items-center gap-1.5">
@@ -721,7 +758,9 @@ export default function AdminPage() {
                   <p className="font-mono text-[10px] text-[#aaa391] mt-0.5">NIM Peserta: {sub.nim || (sub.submittedBy ? sub.submittedBy.split("@")[0] : "N/A")}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center mt-1 sm:mt-0">
+                    {/* FITUR BARU UI: Tampilan Timestamp Waktu Submit Tugas */}
+                    <span className="text-[10px] text-[#aaa391] font-mono shrink-0 hidden sm:inline-block mr-1">{formatTime(sub.createdAt)}</span>
                     {sub.submissionType && (
                       <span className="text-[9px] uppercase border border-white/20 px-1.5 py-0.5 rounded text-[#aaa391]">{sub.submissionType}</span>
                     )}
@@ -759,24 +798,27 @@ export default function AdminPage() {
           </div>
         </div>
         <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/10 text-xs text-white shadow-inner">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="bg-white/5 text-[#D5C757] border-b border-white/10">
+              <tr className="bg-white/5 text-[#D5C757] border-b border-white/10 whitespace-nowrap">
                 <th className="p-3">NIM Data Token</th>
-                <th className="p-3">Nama Peserta Sesuai Sistem</th>
-                <th className="p-3">Status Indeks Kehadiran</th>
-                <th className="p-3">Detail (Catatan/Feedback/Medis)</th>
+                <th className="p-3">Nama Peserta</th>
+                <th className="p-3">Status Indeks</th>
+                <th className="p-3">Detail (Catatan/Medis)</th>
+                {/* FITUR BARU UI: Kolom Waktu dan Bukti */}
+                <th className="p-3">Waktu Perekaman</th>
+                <th className="p-3">Bukti File</th>
               </tr>
             </thead>
             <tbody>
               {adminAttendanceRecords.length > 0 ? (
                 adminAttendanceRecords.map((row, idx) => (
                   <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition">
-                    <td className="p-3 font-mono text-teal-400 font-bold">{row.nim}</td>
-                    <td className="p-3 font-medium">{row.fullName}</td>
-                    <td className="p-3"><span className="px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-bold">{row.status}</span></td>
+                    <td className="p-3 font-mono text-teal-400 font-bold whitespace-nowrap">{row.nim}</td>
+                    <td className="p-3 font-medium min-w-[150px]">{row.fullName}</td>
+                    <td className="p-3 whitespace-nowrap"><span className="px-2 py-0.5 rounded bg-white/10 text-[10px] uppercase font-bold">{row.status}</span></td>
                     
-                    <td className="p-3 max-w-[250px] break-words whitespace-normal text-[10px] sm:text-[11px] text-[#aaa391]">
+                    <td className="p-3 min-w-[200px] break-words whitespace-normal text-[10px] sm:text-[11px] text-[#aaa391]">
                       {attendanceTabFilter === "awal" && (row.evidenceText || "-")}
                       {attendanceTabFilter === "akhir" && (row.feedback || "-")}
                       {attendanceTabFilter === "h1" && (
@@ -785,10 +827,24 @@ export default function AdminPage() {
                         : (row.condition || "-")
                       )}
                     </td>
+
+                    {/* FITUR BARU UI: Render Timestamp Presensi */}
+                    <td className="p-3 whitespace-nowrap">
+                      <span className="font-mono text-[10px] text-[#aaa391]">{formatTime(row.createdAt)}</span>
+                    </td>
+                    
+                    {/* FITUR BARU UI: Render Tombol Lihat Bukti Presensi/H-1 */}
+                    <td className="p-3 whitespace-nowrap">
+                      {row.evidenceUrl && row.evidenceUrl !== "-" ? (
+                        <a href={row.evidenceUrl} target="_blank" rel="noreferrer" className="nav-chip px-2.5 py-1.5 text-[9px] font-bold">Lihat Bukti</a>
+                      ) : (
+                        <span className="text-[#aaa391] text-[10px] pl-2">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={4} className="p-4 text-center text-[#aaa391] italic">Belum ada sirkulasi paket log absensi maba masuk pada parameter filter ini.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-center text-[#aaa391] italic">Belum ada sirkulasi paket log absensi maba masuk pada parameter filter ini.</td></tr>
               )}
             </tbody>
           </table>
