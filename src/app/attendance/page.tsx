@@ -399,7 +399,7 @@ export default function AttendancePage() {
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Konfirmasi Kehadiran Day & Kondisi Kesehatan</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi fisik vital untuk pemetaan logistik tim medis lapangan.</p>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi kesehatan</p>
                 </div>
                 <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757]">
                   📅
@@ -415,7 +415,7 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
@@ -423,10 +423,10 @@ export default function AttendancePage() {
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kehadiran</span>
                   <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir tepat waktu">Hadir Tepat Waktu Sesuai Instruksi Pagi</option>
-                    <option value="hadir menyusul">Hadir Menyusul (Tabrakan Jadwal Akademik)</option>
-                    <option value="izin meninggalkan">Izin Meninggalkan Lapangan Lebih Cepat</option>
-                    <option value="tidak hadir">Mutlak Berhalangan Hadir (Sakit Keras/Izin)</option>
+                    <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
+                    <option value="hadir menyusul">Izin Menyusul</option>
+                    <option value="izin meninggalkan">Izin Meninggalkan</option>
+                    <option value="tidak hadir">Tidak Hadir</option>
                   </select>
                 </label>
 
@@ -448,13 +448,13 @@ export default function AttendancePage() {
                   <div className="space-y-1">
                     <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
                       <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D5C757] shrink-0 mt-1 sm:mt-0.5" />
-                      <span>Sektor Skrining Medis Lapangan (Pita Putih)</span>
+                      <span>Skrining Medik</span>
                     </h3>
                     <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan anda demi keselamatan darurat selama kegiatan</p>
                   </div>
 
                   <label className="block space-y-1">
-                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Tubuh Saat Ini?</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Saat Ini?</span>
                     <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
                       <option value="Tidak sakit">Sehat</option>
                       <option value="Sedang sakit">Sedang Sakit</option>
