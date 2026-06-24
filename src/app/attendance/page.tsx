@@ -17,6 +17,11 @@ const osjurDays = [
   { value: "day_6", label: "Day 6 - Evaluation & Horizon" },
 ];
 
+// DAFTAR HITAM TESTER: 
+// Akun-akun ini datanya akan tetap masuk ke database & CSV, 
+// TAPI TIDAK AKAN dihitung di kotak "Live Metrics" sebelah kanan.
+const TESTER_NIMS = ["webdevishimafiitb", "10224000"]; 
+
 interface AttendanceAwalStructure {
   fullName: string;
   nim: string;
@@ -60,14 +65,12 @@ export default function AttendancePage() {
   const [activeTab, setActiveTab] = useState<"h1" | "dday_awal" | "dday_akhir">("h1");
 
   const [fullName, setFullName] = useState<string>("");
-  // FIX: Nilai default Check-In diubah ke format yang baru
   const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir tepat waktu");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
   const [statusH1, setStatusH1] = useState<string>("hadir tepat waktu");
   const [evidenceText, setEvidenceText] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   
-  // State khusus untuk file surat izin form H-1
   const [evidenceFileH1, setEvidenceFileH1] = useState<File | null>(null);
   
   const [feedbackText, setFeedbackText] = useState<string>("");
@@ -138,29 +141,32 @@ export default function AttendancePage() {
     return new Date() > new Date(targetDeadline);
   }, [firebaseMeta, selectedDay, activeTab]);
 
-  // FIX: Menggabungkan nilai string lama dan baru agar angka metrik tetap akurat meskipun opsi diganti
+  // FIX PENGECUALIAN TESTER: Metrik mengabaikan akun yang ada di daftar TESTER_NIMS
   const filteredDDayAwalMetrics = useMemo(() => {
+    const validRecords = awalRecords.filter(r => !TESTER_NIMS.includes(r.nim));
     return {
-      hadir: awalRecords.filter((r) => r.status === "hadir tepat waktu" || r.status === "hadir").length,
-      menyusul: awalRecords.filter((r) => r.status === "izin menyusul" || r.status === "menyusul").length,
-      meninggalkan: awalRecords.filter((r) => r.status === "izin meninggalkan" || r.status === "meninggalkan").length,
-      tidakHadir: awalRecords.filter((r) => r.status === "tidak hadir").length,
+      hadir: validRecords.filter((r) => r.status === "hadir tepat waktu" || r.status === "hadir").length,
+      menyusul: validRecords.filter((r) => r.status === "izin menyusul" || r.status === "menyusul").length,
+      meninggalkan: validRecords.filter((r) => r.status === "izin meninggalkan" || r.status === "meninggalkan").length,
+      tidakHadir: validRecords.filter((r) => r.status === "tidak hadir").length,
     };
   }, [awalRecords]);
 
   const filteredDDayAkhirMetrics = useMemo(() => {
+    const validRecords = akhirRecords.filter(r => !TESTER_NIMS.includes(r.nim));
     return {
-      hadir: akhirRecords.filter((r) => r.status === "hadir").length,
-      tidakHadir: akhirRecords.filter((r) => r.status === "tidak hadir").length,
+      hadir: validRecords.filter((r) => r.status === "hadir").length,
+      tidakHadir: validRecords.filter((r) => r.status === "tidak hadir").length,
     };
   }, [akhirRecords]);
 
   const filteredH1Metrics = useMemo(() => {
+    const validRecords = h1Records.filter(r => !TESTER_NIMS.includes(r.nim));
     return {
-      tepatWaktu: h1Records.filter((r) => r.status === "hadir tepat waktu").length,
-      menyusul: h1Records.filter((r) => r.status === "hadir menyusul").length,
-      izin: h1Records.filter((r) => r.status === "izin meninggalkan").length,
-      tidakHadir: h1Records.filter((r) => r.status === "tidak hadir").length,
+      tepatWaktu: validRecords.filter((r) => r.status === "hadir tepat waktu").length,
+      menyusul: validRecords.filter((r) => r.status === "hadir menyusul").length,
+      izin: validRecords.filter((r) => r.status === "izin meninggalkan").length,
+      tidakHadir: validRecords.filter((r) => r.status === "tidak hadir").length,
     };
   }, [h1Records]);
 
@@ -246,7 +252,6 @@ export default function AttendancePage() {
     if (isGateClosed || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
 
-    // FITUR UPLOAD H-1: Wajib lampirkan surat jika status bukan hadir tepat waktu
     if (statusH1 !== "hadir tepat waktu" && !evidenceFileH1) {
       setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto)!");
       return;
@@ -277,7 +282,7 @@ export default function AttendancePage() {
         symptoms: condition === "Sedang sakit" ? symptoms.trim() || "-" : "-",
         tookMedicine: condition === "Sedang sakit" ? tookMedicine : "-",
         medicineName: (condition === "Sedang sakit" && tookMedicine === "Sudah") ? medicineName.trim() || "-" : "-",
-        evidenceUrl: evidenceUrl || "-", // Menyimpan link file jika ada
+        evidenceUrl: evidenceUrl || "-", 
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
@@ -308,14 +313,11 @@ export default function AttendancePage() {
 
   return (
     <div className="min-h-screen bg-[#0F282F] p-4 sm:p-6 lg:p-8 text-[#F2EDEC] relative overflow-x-hidden selection:bg-[#D5C757]/30 w-full max-w-full">
-      {/* GLOWING AMBIENT DECORATIVE SCATTER BLODS */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#084D58]/10 blur-[120px] pointer-events-none z-0 hidden sm:block" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#D5C757]/5 blur-[100px] pointer-events-none z-0 hidden sm:block" />
 
-      {/* WRAPPER UTAMA */}
       <div className="max-w-7xl mx-auto space-y-6 relative z-10 w-full min-w-0">
         
-        {/* PANEL HEADER */}
         <header className="panel rounded-3xl border border-[#084D58]/40 bg-[#0F282F]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6 w-full min-w-0">
           <div className="space-y-2 w-full max-w-xl">
             <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-full border border-[#D5C757]/30 bg-[#D5C757]/10 text-[#D5C757] text-[10px] uppercase font-bold tracking-widest break-words text-center sm:text-left">
@@ -335,14 +337,12 @@ export default function AttendancePage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
               DAY:
             </label>
-            {/* FIX: Tambahkan key={selectedDay} di sini agar elemen ini di-reset paksa oleh React saat ganti hari, menghindari bentrok Google Translate */}
             <div key={selectedDay} className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
               {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
             </div>
           </div>
         </header>
 
-        {/* UI TAB KINI JAUH LEBIH JELAS & KONTRAS (Tab H-1 dipindah ke paling depan) */}
         <nav className="flex flex-nowrap border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
           
           <button
@@ -373,7 +373,6 @@ export default function AttendancePage() {
           </button>
         </nav>
 
-        {/* WARNING CLOSE GATE TIMELINE BANNER */}
         {isGateClosed && (
           <div className="col-span-full panel rounded-2xl border border-[#CE4A2D]/50 bg-[#CE4A2D]/10 p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full">
@@ -388,13 +387,10 @@ export default function AttendancePage() {
           </div>
         )}
 
-        {/* LAYOUT BODY FORM GRID */}
         <div className="grid gap-6 lg:gap-8 xl:grid-cols-[1fr_340px] col-span-full items-start w-full min-w-0">
           
-          {/* TAB AREA FORMULIR H-1 DIMUNCULKAN PERTAMA SESUAI URUTAN BARU */}
           {activeTab === "h1" && (
             <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
-              {/* INDIKATOR TEGAS AGAR MABA TIDAK SALAH ISI FORM */}
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
 
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
@@ -416,7 +412,7 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
@@ -431,7 +427,6 @@ export default function AttendancePage() {
                   </select>
                 </label>
 
-                {/* FITUR UPLOAD SURAT IZIN KHUSUS UNTUK YANG TIDAK HADIR TEPAT WAKTU */}
                 {statusH1 !== "hadir tepat waktu" && (
                   <div className="bg-[#CE4A2D]/10 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0 animate-revealDown">
                     <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
@@ -444,7 +439,6 @@ export default function AttendancePage() {
                   </div>
                 )}
 
-                {/* SEKTOR FORM SKRINING KESEHATAN PITA PUTIH */}
                 <div className="border-t border-[#084D58]/30 pt-4 space-y-3">
                   <div className="space-y-1">
                     <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
@@ -462,7 +456,6 @@ export default function AttendancePage() {
                     </select>
                   </label>
 
-                  {/* KONDISIKAN SUB FORM INPUT MEDIS JIKA MEMILIH SEDANG SAKIT */}
                   {condition === "Sedang sakit" && (
                     <div className="bg-black/30 border border-[#084D58]/40 p-4 rounded-2xl space-y-4 animate-revealUp shadow-inner w-full min-w-0">
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
@@ -481,7 +474,7 @@ export default function AttendancePage() {
                           <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Sedang Mengonsumsi Obat?</span>
                           <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={isGateClosed || isLoading} className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                             <option value="Belum">Belum / Tidak Konsumsi Obat</option>
-                            <option value="Sudah">Sudah Konsumsi Obat Medis</option>
+                            <option value="Sudah">Sudah Konsumsi Obat</option>
                           </select>
                         </label>
                         
@@ -503,7 +496,6 @@ export default function AttendancePage() {
             </article>
           )}
 
-          {/* TAB AREA FORMULIR 2: DDAY CHECK-IN (AWAL) */}
           {activeTab === "dday_awal" && (
             <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
@@ -531,7 +523,6 @@ export default function AttendancePage() {
                   </label>
                 </div>
 
-                {/* FIX: OPSI CHECK-IN DISEMPURNAKAN SESUAI REQUEST BARU */}
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
                   <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
@@ -550,7 +541,7 @@ export default function AttendancePage() {
                 <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
                   <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
-                    <span>🖼️ Bukti Dokumentasi Fisik (MUTLAK WAJIB DIISI)</span>
+                    <span>🖼️ Bukti Dokumentasi (WAJIB DIISI)</span>
                   </label>
                   <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form presensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi. Maksimal 5MB.</p>
                   
@@ -564,7 +555,6 @@ export default function AttendancePage() {
             </article>
           )}
 
-          {/* TAB AREA FORMULIR 3: DDAY CHECK-OUT (AKHIR) */}
           {activeTab === "dday_akhir" && (
             <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
@@ -595,8 +585,8 @@ export default function AttendancePage() {
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
                   <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
-                    <option value="hadir">Tuntas Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
-                    <option value="tidak hadir">Meninggalkan Sesi Lebih Awal Karena Hal Darurat</option>
+                    <option value="hadir">Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
+                    <option value="tidak hadir">Izin Meninggalkan</option>
                   </select>
                 </label>
 
@@ -615,7 +605,6 @@ export default function AttendancePage() {
             </article>
           )}
 
-          {/* ASIDE LIVE TRACKING METRICS UNTUK TAB ACTIVE */}
           <aside className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 space-y-4 shadow-2xl backdrop-blur-sm self-start w-full xl:w-80 min-w-0">
             <div className="border-b border-[#084D58]/30 pb-2">
               <h3 className="font-heading text-lg sm:text-xl text-[#D5C757] uppercase tracking-wider break-words whitespace-normal leading-tight">Live Metrics Channel</h3>
