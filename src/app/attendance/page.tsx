@@ -44,7 +44,7 @@ interface H1ConfirmationStructure {
   symptoms?: string;
   tookMedicine?: string;
   medicineName?: string;
-  evidenceUrl?: string; // TAMBAHAN: Menyimpan link bukti surat izin
+  evidenceUrl?: string;
 }
 
 interface FirebaseMetaConfig {
@@ -57,17 +57,17 @@ export default function AttendancePage() {
   const { t } = useI18n();
   const { user } = useAuth();
   
-  // PERBAIKAN 3: Default tab diatur ke "h1" agar muncul pertama kali
   const [activeTab, setActiveTab] = useState<"h1" | "dday_awal" | "dday_akhir">("h1");
 
   const [fullName, setFullName] = useState<string>("");
-  const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir");
+  // FIX: Nilai default Check-In diubah ke format yang baru
+  const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir tepat waktu");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
   const [statusH1, setStatusH1] = useState<string>("hadir tepat waktu");
   const [evidenceText, setEvidenceText] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   
-  // PERBAIKAN 2: State khusus untuk file surat izin form H-1
+  // State khusus untuk file surat izin form H-1
   const [evidenceFileH1, setEvidenceFileH1] = useState<File | null>(null);
   
   const [feedbackText, setFeedbackText] = useState<string>("");
@@ -138,11 +138,12 @@ export default function AttendancePage() {
     return new Date() > new Date(targetDeadline);
   }, [firebaseMeta, selectedDay, activeTab]);
 
+  // FIX: Menggabungkan nilai string lama dan baru agar angka metrik tetap akurat meskipun opsi diganti
   const filteredDDayAwalMetrics = useMemo(() => {
     return {
-      hadir: awalRecords.filter((r) => r.status === "hadir").length,
-      menyusul: awalRecords.filter((r) => r.status === "menyusul").length,
-      meninggalkan: awalRecords.filter((r) => r.status === "meninggalkan").length,
+      hadir: awalRecords.filter((r) => r.status === "hadir tepat waktu" || r.status === "hadir").length,
+      menyusul: awalRecords.filter((r) => r.status === "izin menyusul" || r.status === "menyusul").length,
+      meninggalkan: awalRecords.filter((r) => r.status === "izin meninggalkan" || r.status === "meninggalkan").length,
       tidakHadir: awalRecords.filter((r) => r.status === "tidak hadir").length,
     };
   }, [awalRecords]);
@@ -245,7 +246,7 @@ export default function AttendancePage() {
     if (isGateClosed || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
 
-    // PERBAIKAN 2: Validasi wajib lampirkan surat jika status bukan hadir tepat waktu
+    // FITUR UPLOAD H-1: Wajib lampirkan surat jika status bukan hadir tepat waktu
     if (statusH1 !== "hadir tepat waktu" && !evidenceFileH1) {
       setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto) karena tidak hadir tepat waktu!");
       return;
@@ -340,7 +341,7 @@ export default function AttendancePage() {
           </div>
         </header>
 
-        {/* PERBAIKAN 4: UI TAB KINI JAUH LEBIH JELAS & KONTRAS (Tab H-1 dipindah ke paling depan) */}
+        {/* UI TAB KINI JAUH LEBIH JELAS & KONTRAS (Tab H-1 dipindah ke paling depan) */}
         <nav className="flex flex-nowrap border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
           
           <button
@@ -389,7 +390,7 @@ export default function AttendancePage() {
         {/* LAYOUT BODY FORM GRID */}
         <div className="grid gap-6 lg:gap-8 xl:grid-cols-[1fr_340px] col-span-full items-start w-full min-w-0">
           
-          {/* PERBAIKAN 5: TAB AREA FORMULIR H-1 DIMUNCULKAN PERTAMA SESUAI URUTAN BARU */}
+          {/* TAB AREA FORMULIR H-1 DIMUNCULKAN PERTAMA SESUAI URUTAN BARU */}
           {activeTab === "h1" && (
             <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
               {/* INDIKATOR TEGAS AGAR MABA TIDAK SALAH ISI FORM */}
@@ -429,7 +430,7 @@ export default function AttendancePage() {
                   </select>
                 </label>
 
-                {/* PERBAIKAN 2: FITUR UPLOAD SURAT IZIN KHUSUS UNTUK YANG TIDAK HADIR TEPAT WAKTU */}
+                {/* FITUR UPLOAD SURAT IZIN KHUSUS UNTUK YANG TIDAK HADIR TEPAT WAKTU */}
                 {statusH1 !== "hadir tepat waktu" && (
                   <div className="bg-[#CE4A2D]/10 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0 animate-revealDown">
                     <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
@@ -529,12 +530,13 @@ export default function AttendancePage() {
                   </label>
                 </div>
 
+                {/* FIX: OPSI CHECK-IN DISEMPURNAKAN SESUAI REQUEST BARU */}
                 <label className="block space-y-1">
                   <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
                   <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
-                    <option value="hadir">Hadir Tepat Waktu</option>
-                    <option value="menyusul">Hadir Menyusul</option>
-                    <option value="meninggalkan">Izin Meninggalkan</option>
+                    <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
+                    <option value="izin menyusul">Izin Menyusul</option>
+                    <option value="izin meninggalkan">Izin Meninggalkan</option>
                     <option value="tidak hadir">Tidak Hadir</option>
                   </select>
                 </label>
