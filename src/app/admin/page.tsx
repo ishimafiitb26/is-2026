@@ -62,7 +62,8 @@ interface FirestoreTimestamp {
   toDate?: () => Date;
 }
 
-interface AdminSubmission extends TaskSubmission {
+// FIX BENTROK: Gunakan Omit untuk membuang 'createdAt' bawaan sebelum di-extend
+interface AdminSubmission extends Omit<TaskSubmission, 'createdAt'> {
   nim?: string;
   submittedBy?: string;
   submissionType?: string;
@@ -86,7 +87,7 @@ interface AttendanceViewRow {
   createdAt?: FirestoreTimestamp | Date | null | undefined;
 }
 
-// FIX MUTLAK: Menggunakan tipe data spesifik sebagai argumen fungsi
+// Fungsi Helper untuk merapikan format waktu Firestore ke teks bacaan (WIB)
 const formatTime = (ts: FirestoreTimestamp | Date | null | undefined): string => {
   if (!ts) return "-";
   
