@@ -10,7 +10,7 @@ import { eventMetaRef, getCurrentTimestamp } from "@/lib/engagement";
 
 const osjurDays = [
   { value: "day_1", label: "Day 1 - Opening & Synchronizations" },
-  { value: "day_2", label: "Day 2 - Core Operations Session" },
+  { value: "day_2", label: "Day 2 - Rigel: Potential of The Stars" },
   { value: "day_3", label: "Day 3 - Material Exploration" },
   { value: "day_4", label: "Day 4 - Final Presentation & Closing" },
   { value: "day_5", label: "Day 5 - Extra Operations Grid" },
@@ -170,7 +170,7 @@ export default function AttendancePage() {
     if (!fullName.trim() || !studentNIM) return;
 
     if (!evidenceFile) {
-      setSaveMessage("❌ GAGAL: Anda wajib melampirkan berkas foto bukti dokumentasi fisik kehadiran sebelum submit!");
+      setSaveMessage("❌ GAGAL: Anda wajib melampirkan berkas foto bukti dokumentasi kehadiran sebelum submit!");
       return;
     }
     
@@ -202,7 +202,7 @@ export default function AttendancePage() {
         createdAt: getCurrentTimestamp(),
         updatedAt: getCurrentTimestamp(),
       });
-      setSaveMessage("✅ BERHASIL: Presensi Check-In Anda sudah terkirim dan terkunci aman di sistem panitia!");
+      setSaveMessage("✅ BERHASIL: Presensi Check-In Anda sudah terkirim dan terkunci di sistem!");
       setFullName("");
       setEvidenceText("");
       setEvidenceFile(null);
@@ -248,7 +248,7 @@ export default function AttendancePage() {
 
     // FITUR UPLOAD H-1: Wajib lampirkan surat jika status bukan hadir tepat waktu
     if (statusH1 !== "hadir tepat waktu" && !evidenceFileH1) {
-      setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto) karena tidak hadir tepat waktu!");
+      setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto)!");
       return;
     }
 
@@ -326,14 +326,14 @@ export default function AttendancePage() {
               {t("Operations Presence Hub")}
             </h1>
             <p className="text-[11px] sm:text-xs text-[#aaa391] leading-relaxed break-words whitespace-normal">
-              Selamat datang di stasiun pencatatan log kehadiran terpadu. Pastikan identitas dan kelengkapan dokumen terisi akurat sebelum gerbang batas waktu pengumpulan dikunci otomatis.
+              Pastikan identitas dan konfirmasi kehadiran terisi sebelum presensi ditutup.
             </p>
           </div>
 
           <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0 min-w-0">
             <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
-              Target Hari Operasional Aktif:
+              DAY:
             </label>
             <div className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
               {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
@@ -350,7 +350,7 @@ export default function AttendancePage() {
             className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "h1" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6V20C3.01 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4H19ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>
-            📅 H-1 Confirmation & Medis
+            📅 H-1 Confirmation
           </button>
 
           <button
@@ -359,7 +359,7 @@ export default function AttendancePage() {
             className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_awal" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M12 2L2 22H22L12 2ZM12 6L18.8 19.5H5.2L12 6ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
-            🚀 Check-In (Absen Awal)
+            🚀 Check-In (Presensi Awal)
           </button>
 
           <button
@@ -368,7 +368,7 @@ export default function AttendancePage() {
             className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_akhir" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M14.5 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V7.5L14.5 2ZM18 20H6V4H13.5V8.5H18V20ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
-            🏁 Check-Out (Feedback Akhir)
+            🏁 Check-Out (Presensi Akhir)
           </button>
         </nav>
 
@@ -382,7 +382,7 @@ export default function AttendancePage() {
               </span>
             </div>
             <p className="text-[10px] sm:text-xs text-[#aaa391] mt-2 sm:mt-1 break-words whitespace-normal px-2">
-              Sesi formulir pengumpulan log digital untuk hari operasional ini telah habis masa berlakunya.
+              Sesi presensi berakhir atau belum dibuka. Anda tidak dapat mengirimkan data kehadiran pada sesi ini.
             </p>
           </div>
         )}
@@ -398,8 +398,8 @@ export default function AttendancePage() {
 
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Konfirmasi Kehadiran Day & Kondisi Kesehatan</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lembar pelaporan riwayat kondisi kesehatan</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Konfirmasi Kehadiran Day</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Form konfirmasi kehadiran dan kondisi kesehatan</p>
                 </div>
                 <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757]">
                   📅
@@ -411,7 +411,7 @@ export default function AttendancePage() {
               <form onSubmit={handleH1Submit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">NIM</span>
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
@@ -448,9 +448,9 @@ export default function AttendancePage() {
                   <div className="space-y-1">
                     <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
                       <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D5C757] shrink-0 mt-1 sm:mt-0.5" />
-                      <span>Skrining Medik</span>
+                      <span>Kondisi Kesehatan</span>
                     </h3>
-                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan anda demi keselamatan darurat selama kegiatan</p>
+                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan saat ini</p>
                   </div>
 
                   <label className="block space-y-1">
@@ -486,7 +486,7 @@ export default function AttendancePage() {
                         
                         {tookMedicine === "Sudah" && (
                           <label className="block space-y-1 animate-revealUp min-w-0">
-                            <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Nama Obat Diminum:</span>
+                            <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Nama Obat yang Dikonsumsi:</span>
                             <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                           </label>
                         )}
@@ -508,8 +508,8 @@ export default function AttendancePage() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Absensi Check-In</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lakukan perekaman data kehadiran saat memasuki area ring utama.</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Presensi Check-In</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lakukan presensi sesuai instruksi</p>
                 </div>
                 <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757] text-sm sm:text-base">
                   🚀
@@ -521,18 +521,18 @@ export default function AttendancePage() {
               <form onSubmit={handleDDayAwalSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM (Otomatis)</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">NIM (Otomatis)</span>
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
                   </label>
                 </div>
 
                 {/* FIX: OPSI CHECK-IN DISEMPURNAKAN SESUAI REQUEST BARU */}
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Index Kehadiran Lapangan</span>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
                   <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
                     <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
                     <option value="izin menyusul">Izin Menyusul</option>
@@ -542,7 +542,7 @@ export default function AttendancePage() {
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan Justifikasi / Keterangan Bukti</span>
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan / Keterangan Bukti</span>
                   <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
                 </label>
 
@@ -551,7 +551,7 @@ export default function AttendancePage() {
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
                     <span>🖼️ Bukti Dokumentasi Fisik (MUTLAK WAJIB DIISI)</span>
                   </label>
-                  <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form absensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi. Maksimal 5MB.</p>
+                  <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form presensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi. Maksimal 5MB.</p>
                   
                   <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={isGateClosed || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#084D58] file:text-[#D5C757] file:hover:bg-[#084D58]/80 file:transition" />
                 </div>
@@ -569,8 +569,8 @@ export default function AttendancePage() {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
               <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Absensi Check-Out & Evaluasi</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan aman dan pengisian lembar umpan balik maba harian.</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Presensi Check-Out & Evaluasi</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Sesi konfirmasi kepulangan dan pengisian lembar umpan balik harian.</p>
                 </div>
                 <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-xl bg-[#D5C757]/20 border border-[#D5C757]/50 flex items-center justify-center text-[#D5C757]">
                   🏁
@@ -582,11 +582,11 @@ export default function AttendancePage() {
               <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Identitas NIM Pengisi (Otomatis)</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">NIM (Otomatis)</span>
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Sesuai Berkas</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
                     <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
