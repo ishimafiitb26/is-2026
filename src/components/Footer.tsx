@@ -2,8 +2,8 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-[#084D58]/40 bg-[#0F282F]/80 backdrop-blur-md py-8 mt-auto z-10 relative">
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center gap-5 text-[#aaa391] text-[11px] sm:text-xs px-4">
+    <footer className="w-full border-t border-[#E1D9F9]/[0.08] bg-[#0A0A0B]/85 backdrop-blur-md py-8 mt-auto z-10 relative">
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center gap-5 text-[#E1D9F9]/55 text-[11px] sm:text-xs px-4">
         
         {/* KELOMPOK KONTAK & SOSMED */}
         <div className="flex flex-col items-center gap-2.5">
@@ -12,7 +12,7 @@ export default function Footer() {
             href="https://instagram.com/ppahimafiitb" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="flex items-center gap-2 hover:text-[#D5C757] transition-colors duration-300"
+            className="flex items-center gap-2 hover:text-[#F6C545] transition-colors duration-300"
           >
             {/* Icon Instagram SVG Murni (Tanpa install library) */}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -26,7 +26,7 @@ export default function Footer() {
           {/* Email Support Link */}
           <a 
             href="mailto:webdevishimafiitb@gmail.com" 
-            className="flex items-center gap-2 hover:text-[#D5C757] transition-colors duration-300"
+            className="flex items-center gap-2 hover:text-[#F6C545] transition-colors duration-300"
           >
             {/* Icon Email/Mail SVG Murni */}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -38,7 +38,7 @@ export default function Footer() {
         </div>
         
         {/* HAK CIPTA / COPYRIGHT */}
-        <div className="pt-2 font-mono font-bold text-[9px] sm:text-[10px] text-center tracking-widest text-[#D5C757]/80 uppercase">
+        <div className="pt-2 font-mono font-bold text-[9px] sm:text-[10px] text-center tracking-widest text-[#EC5C2A]/70 uppercase">
           ©2026Copyright: Divisi Web Development IS HIMAFI ITB 2026
         </div>
         
