@@ -1,13 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0F282F; /* Black Box */
-  --foreground: #F2EDEC; /* Vintage Porcelain */
-  --surface: #084D58;    /* Watercolor Blue */
-  --surface-soft: rgba(8, 77, 88, 0.4); /* Watercolor Blue transparan */
-  --muted: #D7DCD5;      /* Nurture */
-  --accent: #D5C757;     /* Citron */
-  --danger: #CE4A2D;     /* Peanut Butter Jelly */
+  /* ── Palet warna — dasar netral, energi dari kuning & oranye ── */
+  --background: #0A0A0B;       /* Hitam netral — kanvas dasar, bukan plum */
+  --foreground: #E1D9F9;       /* Lavender pucat — teks utama */
+  --surface: #452ABC;          /* Biru-ungu — aksen kedalaman/cosmic, panel */
+  --surface-soft: rgba(69, 42, 188, 0.28);  /* Biru-ungu transparan */
+  --muted: rgba(225, 217, 249, 0.45);  /* Lavender redup — teks sekunder (plum tidak lagi jadi base permukaan) */
+  --plum-line: #47314D;        /* Plum — dipakai sangat tipis utk border/garis saja, bukan fill besar */
+  --accent: #F6C545;           /* Kuning (Citron) — aksen utama, energi, CTA */
+  --accent-orange: #EC5C2A;    /* Oranye — energi sekunder, glow, hover */
+  --danger: #EC5C2A;           /* Oranye sebagai warna danger/peringatan */
+
+  /* ── Tipografi ── */
+  /* Title: Michroma, kapital */
+  /* Hero subhead: letter-spacing 230 (2.3em dalam satuan CSS), kapital */
+  /* Content/news: News Cycle Regular, letter-spacing 85 (0.085em) */
+  --font-title: var(--font-michroma), "Michroma", sans-serif;
+  --font-content: var(--font-news-cycle), "News Cycle", sans-serif;
 }
 
 @theme inline {
@@ -22,11 +32,13 @@ body {
   overflow-x: hidden;
   min-height: 100%;
   background: var(--background);
-  /* Ubah gradien dari cokelat ke teal dan oranye redup ala luar angkasa */
+  /* Dasar hitam netral, energi datang dari glow kuning & oranye —
+     biru-ungu tetap ada tapi sebagai kedalaman, bukan dominan */
   background-image:
-    radial-gradient(circle at 0% 0%, rgba(8, 77, 88, 0.4), transparent 35%),
-    radial-gradient(circle at 100% 20%, rgba(206, 74, 45, 0.15), transparent 45%),
-    linear-gradient(140deg, #0F282F 0%, #0a1b20 50%, #050d10 100%);
+    radial-gradient(circle at 10% 0%, rgba(246, 197, 69, 0.10), transparent 38%),
+    radial-gradient(circle at 100% 15%, rgba(236, 92, 42, 0.16), transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(69, 42, 188, 0.14), transparent 50%),
+    linear-gradient(140deg, #0A0A0B 0%, #0c0a10 50%, #060507 100%);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
 }
@@ -73,39 +85,56 @@ h3 {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(rgba(247, 240, 232, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(247, 240, 232, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(225, 217, 249, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(225, 217, 249, 0.05) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: radial-gradient(circle at 50% 20%, black 35%, transparent 85%);
 }
 
+/* ── TITLE: Michroma, kapital ── */
 .font-heading {
-  font-family: var(--font-heading), sans-serif;
+  font-family: var(--font-title);
+  text-transform: uppercase;
+}
+
+/* ── HERO SUBHEAD: letter-spacing 230, kapital ── */
+.hero-subhead {
+  font-family: var(--font-title);
+  text-transform: uppercase;
+  letter-spacing: 0.23em; /* 230/1000 em, setara tracking 230 di desain tools */
+}
+
+/* ── CONTENT / NEWS: News Cycle Regular, letter-spacing 85 ── */
+.content-text,
+body,
+p {
+  font-family: var(--font-content);
+  letter-spacing: 0.085em; /* 85/1000 em, setara tracking 85 */
 }
 
 .panel {
-  border: 1px solid rgba(242, 237, 236, 0.1);
-  background: linear-gradient(180deg, rgba(8, 77, 88, 0.6), rgba(15, 40, 47, 0.9));
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(225, 217, 249, 0.1);
+  background: linear-gradient(180deg, rgba(69, 42, 188, 0.22), rgba(10, 10, 11, 0.94));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(246, 197, 69, 0.04);
   border-radius: 1rem;
 }
 
 .nav-chip {
   border-radius: 9999px;
-  /* Pakai Nurture transparan biar kalem pas diam */
-  border: 1px solid rgba(215, 220, 213, 0.25);
-  background: rgba(215, 220, 213, 0.08);
-  color: var(--muted); /* Warna Nurture */
+  /* Garis plum tipis saja sebagai pembeda halus, bukan fill berat */
+  border: 1px solid rgba(71, 49, 77, 0.5);
+  background: rgba(225, 217, 249, 0.04);
+  color: var(--foreground); /* Lavender pucat */
   padding: 0.4rem 0.85rem;
   font-size: 0.9rem;
   transition: all 180ms ease;
 }
 
 .nav-chip:hover {
-  /* Pas di-hover langsung nyala pakai aksen Citron */
-  border-color: rgba(213, 199, 87, 0.8);
-  background: rgba(213, 199, 87, 0.15);
-  color: var(--foreground); /* Warna Vintage Porcelain biar terang */
+  /* Pas di-hover langsung nyala pakai aksen oranye-kuning, terasa vibrant */
+  border-color: rgba(236, 92, 42, 0.7);
+  background: rgba(246, 197, 69, 0.14);
+  color: var(--foreground);
 }
 
 .status-pill {
@@ -113,30 +142,8 @@ h3 {
   align-items: center;
   border-radius: 9999px;
   /* Pill penanda status pakai Citron transparan biar berasa aura layar pesawat luar angkasa */
-  border: 1px solid rgba(213, 199, 87, 0.5);
-  background: rgba(213, 199, 87, 0.15);
-  color: var(--accent); /* Teks Citron */
-  padding: 0.2rem 0.7rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.nav-chip:hover {
-  /* Pas di-hover langsung nyala pakai aksen Citron */
-  border-color: rgba(213, 199, 87, 0.8);
-  background: rgba(213, 199, 87, 0.15);
-  color: var(--foreground); /* Warna Vintage Porcelain biar terang */
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 9999px;
-  /* Pill penanda status pakai Citron transparan biar berasa aura layar pesawat luar angkasa */
-  border: 1px solid rgba(213, 199, 87, 0.5);
-  background: rgba(213, 199, 87, 0.15);
+  border: 1px solid rgba(246, 197, 69, 0.5);
+  background: rgba(246, 197, 69, 0.15);
   color: var(--accent); /* Teks Citron */
   padding: 0.2rem 0.7rem;
   font-size: 0.78rem;
@@ -147,16 +154,16 @@ h3 {
 
 .cta-btn {
   border-radius: 0.75rem;
-  border: 1px solid rgba(213, 199, 87, 0.6);
-  background: linear-gradient(120deg, #D5C757 0%, #b8ac4b 100%);
-  color: #0F282F; 
+  border: 1px solid rgba(246, 197, 69, 0.6);
+  background: linear-gradient(120deg, #F6C545 0%, #EC5C2A 100%);
+  color: #0A0A0B;
   font-weight: 700;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
 .cta-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(213, 199, 87, 0.25);
+  box-shadow: 0 10px 24px rgba(246, 197, 69, 0.35), 0 0 20px rgba(236, 92, 42, 0.2);
 }
 
 .reveal {
