@@ -55,14 +55,12 @@ interface AdminAnnouncement extends Announcement {
   links?: Array<{ label: string; url: string }>;
 }
 
-// FIX MUTLAK: Mendefinisikan tipe data waktu Firestore secara spesifik (Anti-Any)
 interface FirestoreTimestamp {
   seconds: number;
   nanoseconds: number;
   toDate?: () => Date;
 }
 
-// FIX BENTROK: Gunakan Omit untuk membuang 'createdAt' bawaan sebelum di-extend
 interface AdminSubmission extends Omit<TaskSubmission, 'createdAt'> {
   nim?: string;
   submittedBy?: string;
@@ -84,24 +82,21 @@ interface AttendanceViewRow {
   tookMedicine?: string;
   medicineName?: string;
   evidenceUrl?: string;
+  reasonText?: string; // TAMBAHAN: Menerima data alasan izin dari maba
   createdAt?: FirestoreTimestamp | Date | null | undefined;
 }
 
-// Fungsi Helper untuk merapikan format waktu Firestore ke teks bacaan (WIB)
 const formatTime = (ts: FirestoreTimestamp | Date | null | undefined): string => {
   if (!ts) return "-";
   
-  // Jika ts adalah objek Date bawaan Javascript
   if (ts instanceof Date) {
     return ts.toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + " WIB";
   }
 
-  // Jika ts adalah objek Timestamp dari Firestore (punya method toDate)
   if (typeof ts === 'object' && 'toDate' in ts && typeof ts.toDate === "function") {
     return ts.toDate().toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + " WIB";
   }
 
-  // Fallback: Jika ts hanya berupa objek raw Firestore (hanya punya seconds)
   if (typeof ts === 'object' && 'seconds' in ts && typeof ts.seconds === 'number') {
     return new Date(ts.seconds * 1000).toLocaleString("id-ID", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + " WIB";
   }
@@ -252,7 +247,6 @@ export default function AdminPage() {
   }, [submissions, submissionTaskFilter]);
 
   const downloadSubmissionsCsv = () => {
-    // FITUR BARU: Tambahan Kolom Waktu Pengumpulan di CSV
     const headers = ["NIM", "Task ID", "Note/Message", "File URL", "Waktu Pengumpulan"];
     const rows = filteredSubmissions.map((s) => {
       const rescuedNIM = s.nim || (s.submittedBy ? s.submittedBy.split("@")[0] : "N/A");
@@ -278,13 +272,22 @@ export default function AdminPage() {
   };
 
   const downloadAttendanceCsv = () => {
-    // FITUR BARU: Tambahan Kolom Waktu Presensi & Link Bukti di CSV
     const headers = ["NIM", "Nama Lengkap", "Status Kehadiran", "Detail Catatan / Kondisi Medis", "Waktu Perekaman", "Link Bukti File"];
     const rows = adminAttendanceRecords.map((r) => {
       let detail = r.evidenceText || r.feedback || "-";
-      if (attendanceTabFilter === "h1" && r.condition === "Sedang sakit") {
-        detail = `Sakit: ${r.illnessName} | Gejala: ${r.symptoms} | Minum Obat: ${r.tookMedicine} (${r.medicineName})`;
+      
+      // FIX EXPORT CSV: Menggabungkan ReasonText & Kondisi Medis
+      if (attendanceTabFilter === "h1") {
+        let parts = [];
+        if (r.reasonText && r.reasonText !== "-") parts.push(`Alasan: ${r.reasonText}`);
+        if (r.condition === "Sedang sakit") {
+          parts.push(`Sakit: ${r.illnessName} | Gejala: ${r.symptoms} | Obat: ${r.tookMedicine} (${r.medicineName})`);
+        } else {
+          parts.push(`Kondisi: ${r.condition || "-"}`);
+        }
+        detail = parts.length > 0 ? parts.join(" || ") : "-";
       }
+
       return [
         r.nim || "N/A", 
         r.fullName || "N/A", 
@@ -760,7 +763,6 @@ export default function AdminPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
                   <div className="flex gap-2 items-center mt-1 sm:mt-0">
-                    {/* FITUR BARU UI: Tampilan Timestamp Waktu Submit Tugas */}
                     <span className="text-[10px] text-[#aaa391] font-mono shrink-0 hidden sm:inline-block mr-1">{formatTime(sub.createdAt)}</span>
                     {sub.submissionType && (
                       <span className="text-[9px] uppercase border border-white/20 px-1.5 py-0.5 rounded text-[#aaa391]">{sub.submissionType}</span>
@@ -806,7 +808,6 @@ export default function AdminPage() {
                 <th className="p-3">Nama Peserta</th>
                 <th className="p-3">Status Indeks</th>
                 <th className="p-3">Detail (Catatan/Medis)</th>
-                {/* FITUR BARU UI: Kolom Waktu dan Bukti */}
                 <th className="p-3">Waktu Perekaman</th>
                 <th className="p-3">Bukti File</th>
               </tr>
@@ -822,19 +823,30 @@ export default function AdminPage() {
                     <td className="p-3 min-w-[200px] break-words whitespace-normal text-[10px] sm:text-[11px] text-[#aaa391]">
                       {attendanceTabFilter === "awal" && (row.evidenceText || "-")}
                       {attendanceTabFilter === "akhir" && (row.feedback || "-")}
+                      
+                      {/* TAMPILAN DETAIL BARU UNTUK H-1 (ALASAN + MEDIS) */}
                       {attendanceTabFilter === "h1" && (
-                        row.condition === "Sedang sakit" 
-                        ? `Sakit: ${row.illnessName} | Gejala: ${row.symptoms} | Minum Obat: ${row.tookMedicine} (${row.medicineName})`
-                        : (row.condition || "-")
+                        <>
+                          {row.reasonText && row.reasonText !== "-" && (
+                            <span className="block mb-1 border-b border-white/5 pb-1">
+                              <b className="text-[#D5C757]">Alasan:</b> {row.reasonText}
+                            </span>
+                          )}
+                          <span className="block">
+                            <b className={row.condition === "Sedang sakit" ? "text-[#CE4A2D]" : "text-teal-400"}>Medis:</b>{" "}
+                            {row.condition === "Sedang sakit" 
+                              ? `${row.illnessName} | Gejala: ${row.symptoms} | Obat: ${row.tookMedicine} (${row.medicineName})`
+                              : (row.condition || "-")
+                            }
+                          </span>
+                        </>
                       )}
                     </td>
 
-                    {/* FITUR BARU UI: Render Timestamp Presensi */}
                     <td className="p-3 whitespace-nowrap">
                       <span className="font-mono text-[10px] text-[#aaa391]">{formatTime(row.createdAt)}</span>
                     </td>
                     
-                    {/* FITUR BARU UI: Render Tombol Lihat Bukti Presensi/H-1 */}
                     <td className="p-3 whitespace-nowrap">
                       {row.evidenceUrl && row.evidenceUrl !== "-" ? (
                         <a href={row.evidenceUrl} target="_blank" rel="noreferrer" className="nav-chip px-2.5 py-1.5 text-[9px] font-bold">Lihat Bukti</a>
