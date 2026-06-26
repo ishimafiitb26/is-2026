@@ -11,7 +11,7 @@ import { eventMetaRef, getCurrentTimestamp } from "@/lib/engagement";
 const osjurDays = [
   { value: "day_1", label: "Day 1 - Opening & Synchronizations" },
   { value: "day_2", label: "Day 2 - Rigel: Potential of The Stars" },
-  { value: "day_3", label: "Day 3 - Material Exploration" },
+  { value: "day_3", label: "Day 3 - Vega: Weaving The Future" },
   { value: "day_4", label: "Day 4 - Final Presentation & Closing" },
   { value: "day_5", label: "Day 5 - Extra Operations Grid" },
   { value: "day_6", label: "Day 6 - Evaluation & Horizon" },
@@ -44,6 +44,7 @@ interface H1ConfirmationStructure {
   nim: string;
   day: string;
   status: string;
+  reasonText?: string; // TAMBAHAN: Menyimpan alasan/deskripsi izin
   condition: string;
   illnessName?: string;
   symptoms?: string;
@@ -68,6 +69,10 @@ export default function AttendancePage() {
   const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir tepat waktu");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
   const [statusH1, setStatusH1] = useState<string>("hadir tepat waktu");
+  
+  // TAMBAHAN STATE UNTUK ALASAN H-1
+  const [h1ReasonText, setH1ReasonText] = useState<string>("");
+
   const [evidenceText, setEvidenceText] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   
@@ -141,7 +146,6 @@ export default function AttendancePage() {
     return new Date() > new Date(targetDeadline);
   }, [firebaseMeta, selectedDay, activeTab]);
 
-  // FIX PENGECUALIAN TESTER: Metrik mengabaikan akun yang ada di daftar TESTER_NIMS
   const filteredDDayAwalMetrics = useMemo(() => {
     const validRecords = awalRecords.filter(r => !TESTER_NIMS.includes(r.nim));
     return {
@@ -252,9 +256,16 @@ export default function AttendancePage() {
     if (isGateClosed || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
 
-    if (statusH1 !== "hadir tepat waktu" && !evidenceFileH1) {
-      setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto)!");
-      return;
+    if (statusH1 !== "hadir tepat waktu") {
+      // VALDASI BARU: Alasan wajib diisi
+      if (!h1ReasonText.trim()) {
+        setSaveMessage("❌ GAGAL: Anda WAJIB mengisi deskripsi/alasan ketidakhadiran tepat waktu!");
+        return;
+      }
+      if (!evidenceFileH1) {
+        setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto)!");
+        return;
+      }
     }
 
     if (evidenceFileH1 && evidenceFileH1.size > 5 * 1024 * 1024) {
@@ -277,6 +288,7 @@ export default function AttendancePage() {
         nim: studentNIM,
         day: selectedDay,
         status: statusH1,
+        reasonText: statusH1 !== "hadir tepat waktu" ? h1ReasonText.trim() : "-", // Menyimpan Alasan
         condition,
         illnessName: condition === "Sedang sakit" ? illnessName.trim() || "-" : "-",
         symptoms: condition === "Sedang sakit" ? symptoms.trim() || "-" : "-",
@@ -288,6 +300,7 @@ export default function AttendancePage() {
       });
       setSaveMessage("✅ BERHASIL: Paket Data Konfirmasi H-1 Anda resmi terkunci di sistem!");
       setFullName("");
+      setH1ReasonText(""); // Clear data alasan
       setIllnessName("");
       setSymptoms("");
       setMedicineName("");
@@ -427,15 +440,46 @@ export default function AttendancePage() {
                   </select>
                 </label>
 
+                {/* MODIFIKASI: BOX ALASAN WAJIB & UPLOAD SURAT IZIN */}
                 {statusH1 !== "hadir tepat waktu" && (
-                  <div className="bg-[#CE4A2D]/10 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0 animate-revealDown">
-                    <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
-                      <span>🖼️ Upload Bukti Keterangan / Surat Izin (WAJIB)</span>
-                    </label>
-                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Karena Anda tidak dapat hadir tepat waktu, Anda diwajibkan melampirkan berkas bukti pendukung (PDF/Foto). Maksimal 5MB.</p>
+                  <div className="bg-[#CE4A2D]/10 p-4 sm:p-5 rounded-xl border border-[#CE4A2D]/30 space-y-5 shadow-inner w-full min-w-0 animate-revealDown">
                     
-                    <input type="file" accept="image/*,.pdf" onChange={(e) => setEvidenceFileH1(e.target.files?.[0] || null)} disabled={isGateClosed || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#CE4A2D] file:text-white file:hover:bg-[#CE4A2D]/80 file:transition" />
+                    {/* TEXTAREA PENJELASAN ALASAN IZIN (WAJIB) */}
+                    <label className="block space-y-2">
+                      <span className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                        <span>📝 Alasan / Penjelasan Ketidakhadiran (WAJIB)</span>
+                      </span>
+                      <textarea
+                        value={h1ReasonText}
+                        onChange={(e) => setH1ReasonText(e.target.value)}
+                        disabled={isGateClosed || isLoading}
+                        placeholder="Tuliskan alasan yang jelas dan spesifik mengapa Anda tidak bisa hadir tepat waktu..."
+                        className="w-full rounded-xl border border-[#CE4A2D]/40 bg-black/20 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#CE4A2D] transition font-body resize-y"
+                        rows={2}
+                        required
+                      />
+                    </label>
+
+                    {/* UPLOAD FILE BUKTI (WAJIB) */}
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                        <span>🖼️ Upload Bukti Keterangan / Surat Izin (WAJIB)</span>
+                      </label>
+                      <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">
+                        Anda diwajibkan melampirkan berkas bukti pendukung (PDF/Foto). Maksimal 5MB.
+                      </p>
+                      
+                      <input 
+                        type="file" 
+                        accept="image/*,.pdf" 
+                        onChange={(e) => setEvidenceFileH1(e.target.files?.[0] || null)} 
+                        disabled={isGateClosed || isLoading} 
+                        className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#CE4A2D] file:text-white file:hover:bg-[#CE4A2D]/80 file:transition" 
+                      />
+                    </div>
+
                   </div>
                 )}
 
