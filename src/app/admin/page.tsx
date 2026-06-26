@@ -82,7 +82,7 @@ interface AttendanceViewRow {
   tookMedicine?: string;
   medicineName?: string;
   evidenceUrl?: string;
-  reasonText?: string; // TAMBAHAN: Menerima data alasan izin dari maba
+  reasonText?: string; 
   createdAt?: FirestoreTimestamp | Date | null | undefined;
 }
 
@@ -119,6 +119,11 @@ export default function AdminPage() {
   const [activeOsjurDay, setActiveOsjurDay] = useState<string>("day_1");
 
   const [targetDeadlineDay, setTargetDeadlineDay] = useState<string>("day_1");
+  
+  const [currentH1Open, setCurrentH1Open] = useState<string>("");
+  const [currentAwalOpen, setCurrentAwalOpen] = useState<string>("");
+  const [currentAkhirOpen, setCurrentAkhirOpen] = useState<string>("");
+
   const [currentH1Deadline, setCurrentH1Deadline] = useState<string>("");
   const [currentAwalDeadline, setCurrentAwalDeadline] = useState<string>("");
   const [currentAkhirDeadline, setCurrentAkhirDeadline] = useState<string>("");
@@ -192,11 +197,19 @@ export default function AdminPage() {
   useEffect(() => {
     if (!masterMeta) return;
 
+    const h1OpenVal = masterMeta[`${targetDeadlineDay}_h1_open`];
+    const awalOpenVal = masterMeta[`${targetDeadlineDay}_dday_awal_open`];
+    const akhirOpenVal = masterMeta[`${targetDeadlineDay}_dday_akhir_open`];
+
     const h1Val = masterMeta[`${targetDeadlineDay}_h1_deadline`];
     const awalVal = masterMeta[`${targetDeadlineDay}_dday_awal_deadline`];
     const akhirVal = masterMeta[`${targetDeadlineDay}_dday_akhir_deadline`];
 
     const timer = setTimeout(() => {
+      setCurrentH1Open(typeof h1OpenVal === "string" ? h1OpenVal : "");
+      setCurrentAwalOpen(typeof awalOpenVal === "string" ? awalOpenVal : "");
+      setCurrentAkhirOpen(typeof akhirOpenVal === "string" ? akhirOpenVal : "");
+
       setCurrentH1Deadline(typeof h1Val === "string" ? h1Val : "");
       setCurrentAwalDeadline(typeof awalVal === "string" ? awalVal : "");
       setCurrentAkhirDeadline(typeof akhirVal === "string" ? akhirVal : "");
@@ -276,9 +289,9 @@ export default function AdminPage() {
     const rows = adminAttendanceRecords.map((r) => {
       let detail = r.evidenceText || r.feedback || "-";
       
-      // FIX EXPORT CSV: Menggabungkan ReasonText & Kondisi Medis
       if (attendanceTabFilter === "h1") {
-        let parts = [];
+        const parts = [] as string[]; 
+        
         if (r.reasonText && r.reasonText !== "-") parts.push(`Alasan: ${r.reasonText}`);
         if (r.condition === "Sedang sakit") {
           parts.push(`Sakit: ${r.illnessName} | Gejala: ${r.symptoms} | Obat: ${r.tookMedicine} (${r.medicineName})`);
@@ -324,6 +337,10 @@ export default function AdminPage() {
       activeOsjurDay: activeOsjurDay,
       updatedAt: getCurrentTimestamp(),
     };
+
+    updatePayload[`${targetDeadlineDay}_h1_open`] = currentH1Open;
+    updatePayload[`${targetDeadlineDay}_dday_awal_open`] = currentAwalOpen;
+    updatePayload[`${targetDeadlineDay}_dday_akhir_open`] = currentAkhirOpen;
 
     updatePayload[`${targetDeadlineDay}_h1_deadline`] = currentH1Deadline;
     updatePayload[`${targetDeadlineDay}_dday_awal_deadline`] = currentAwalDeadline;
@@ -541,7 +558,7 @@ export default function AdminPage() {
   };
 
   return (
-    <section className="space-y-6 p-4 sm:p-6 lg:p-8 bg-[#0F282F] min-h-screen text-[#F2EDEC]">
+    <section className="space-y-6 p-4 sm:p-6 lg:p-8 bg-[#0F282F] min-h-screen text-[#F2EDEC] w-full max-w-full overflow-x-hidden">
       <header className="panel p-6 rounded-2xl border border-[#084D58]/40">
         <p className="status-pill">Terminal Console</p>
         <h1 className="mt-2 font-heading text-4xl text-[#f7f0e8]">{t("Admin Controls")}</h1>
@@ -554,7 +571,9 @@ export default function AdminPage() {
       )}
 
       <article className="panel p-6 space-y-4 rounded-2xl border border-[#084D58]/30">
-        <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config & Infinite Deadlines</h2>
+        <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config & Auto-Pilot Gates</h2>
+        
+        {/* FIX UI: Memasukkan kembali Input Countdown dan merapikan Grid */}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1">
             <span className="text-xs text-[#aaa391]">Target Total Quota Peserta</span>
@@ -565,7 +584,7 @@ export default function AdminPage() {
             <select value={activeOsjurDay} onChange={(e) => setActiveOsjurDay(e.target.value)} className="w-full rounded-xl border border-teal-500/50 bg-[#0F282F]/80 px-3 py-2 text-sm text-teal-400 font-bold outline-none cursor-pointer">
               <option value="day_1">Day 1 - Opening & Synch</option>
               <option value="day_2">Day 2 - Core Operations</option>
-              <option value="day_3">Day 3 - Exploration</option>
+              <option value="day_3">Day 3 - Vega: Weaving The Future</option>
               <option value="day_4">Day 4 - Final Closing</option>
               <option value="day_5">Day 5 - Extra Session</option>
               <option value="day_6">Day 6 - Backup Timeline</option>
@@ -579,28 +598,57 @@ export default function AdminPage() {
             <span className="text-xs text-[#aaa391]">Today Schedule Text</span>
             <input value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
           </label>
+          
+          {/* FITUR INPUT COUNTDOWN */}
+          <label className="block space-y-1 sm:col-span-2">
+            <span className="text-xs text-[#aaa391]">Countdown Text</span>
+            <input value={countdownInput} onChange={(e) => setCountdownInput(e.target.value)} placeholder="Contoh: 08:00 WIB" type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
+          </label>
         </div>
 
-        <div className="border-t border-white/10 pt-4 space-y-3">
-          <div className="grid gap-4 sm:grid-cols-4 items-end bg-black/20 p-4 rounded-xl border border-white/5">
-            <label className="block space-y-1">
-              <span className="text-xs text-[#D5C757] font-bold">Pilih Hari Yang Ingin Diatur Deadlinenya:</span>
-              <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2 rounded font-medium cursor-pointer">
+        <div className="border-t border-white/10 pt-4 mt-2 space-y-3">
+          <h3 className="text-xs font-bold text-[#D5C757]">Pengaturan Gerbang Presensi Auto-Pilot (Buka & Tutup Otomatis)</h3>
+          
+          <div className="bg-black/20 p-4 rounded-xl border border-white/5 space-y-4">
+            <label className="block space-y-1 max-w-sm">
+              <span className="text-[11px] text-[#aaa391] uppercase tracking-wider">Pilih Hari Yang Ingin Diatur:</span>
+              <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2.5 rounded-lg font-bold cursor-pointer outline-none focus:border-[#D5C757]">
                 <option value="day_1">Day 1 - Opening & Synch</option>
                 <option value="day_2">Day 2 - Core Operations</option>
-                <option value="day_3">Day 3 - Exploration</option>
+                <option value="day_3">Day 3 - Vega: Weaving The Future</option>
                 <option value="day_4">Day 4 - Final Closing</option>
                 <option value="day_5">Day 5 - Extra Session</option>
                 <option value="day_6">Day 6 - Backup Timeline</option>
               </select>
             </label>
-            <label className="block space-y-1"><span className="text-[11px] text-[#aaa391]">H-1 Close Gate</span><input type="datetime-local" value={currentH1Deadline} onChange={(e) => setCurrentH1Deadline(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-1.5 rounded font-mono" /></label>
-            <label className="block space-y-1"><span className="text-[11px] text-[#aaa391]">Check-In Close Gate</span><input type="datetime-local" value={currentAwalDeadline} onChange={(e) => setCurrentAwalDeadline(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-1.5 rounded font-mono" /></label>
-            <label className="block space-y-1"><span className="text-[11px] text-[#aaa391]">Check-Out Close Gate</span><input type="datetime-local" value={currentAkhirDeadline} onChange={(e) => setCurrentAkhirDeadline(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-1.5 rounded font-mono" /></label>
+
+            {/* FIX OVERFLOW: Mengubah sm:grid-cols-3 menjadi lg:grid-cols-3 agar memanjang ke bawah di layar HP (Responsive) */}
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+              {/* Box H-1 */}
+              <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
+                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">📅 H-1 Confirmation</span>
+                <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentH1Open} onChange={(e) => setCurrentH1Open(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
+                <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentH1Deadline} onChange={(e) => setCurrentH1Deadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
+              </div>
+              
+              {/* Box Check-In */}
+              <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
+                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">🚀 Check-In Awal</span>
+                <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentAwalOpen} onChange={(e) => setCurrentAwalOpen(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
+                <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentAwalDeadline} onChange={(e) => setCurrentAwalDeadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
+              </div>
+
+              {/* Box Check-Out */}
+              <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
+                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">🏁 Check-Out Akhir</span>
+                <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentAkhirOpen} onChange={(e) => setCurrentAkhirOpen(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
+                <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentAkhirDeadline} onChange={(e) => setCurrentAkhirDeadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
+              </div>
+            </div>
           </div>
         </div>
 
-        <button onClick={saveGlobalConfig} className="cta-btn px-6 py-2 text-xs uppercase font-bold">Deploy Config Parameters</button>
+        <button onClick={saveGlobalConfig} className="cta-btn px-6 py-2.5 text-xs uppercase font-bold w-full sm:w-auto mt-2">Save</button>
       </article>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -626,7 +674,7 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2">
-            <button onClick={handleSaveTaskAction} disabled={isCreatingTask} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingTaskId ? "Update Mission" : "Deploy Mission"}</button>
+            <button onClick={handleSaveTaskAction} disabled={isCreatingTask} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingTaskId ? "Update" : "Submit"}</button>
             {editingTaskId && <button type="button" onClick={() => { setEditingTaskId(null); setNewTaskTitle(""); setNewTaskDetail(""); setNewTaskDeadline(""); setNewTaskIsoDeadline(""); }} className="nav-chip text-xs">Batal</button>}
           </div>
           
@@ -652,7 +700,7 @@ export default function AdminPage() {
           </div>
           
           <div className="flex gap-2">
-            <button onClick={handleSaveHandbookAction} disabled={isUploadingHandbook} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingHandbookId ? "Update Document" : "Inject Document"}</button>
+            <button onClick={handleSaveHandbookAction} disabled={isUploadingHandbook} className="cta-btn w-full py-2.5 text-xs uppercase bg-teal-800">{editingHandbookId ? "Update" : "Submit"}</button>
             {editingHandbookId && <button type="button" onClick={() => { setEditingHandbookId(null); setNewHandbookTitle(""); }} className="nav-chip text-xs">Batal</button>}
           </div>
           
@@ -670,26 +718,12 @@ export default function AdminPage() {
         </article>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
-          <h2 className="font-heading text-2xl text-white">{t("Reflection Prompts")}</h2>
-          <div className="mt-4 flex gap-2">
-            <input value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" placeholder={t("Add new prompt")} />
-            <button onClick={addPrompt} className="cta-btn px-4 py-2 text-xs">{t("Add")}</button>
-          </div>
-          <button onClick={seedDefaultPrompts} className="nav-chip mt-3 text-xs">{t("Seed default prompts")}</button>
-          <div className="mt-4 space-y-2">
-            {prompts.map((p) => (
-              <PromptEditor key={p.id} id={p.id} text={p.text} order={p.order} onSave={updatePrompt} onDelete={removePrompt} />
-            ))}
-          </div>
-        </article>
-
+      <div className="grid gap-4 xl:grid-cols-2">        
         <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
           <h2 className="font-heading text-2xl text-white">{editingAnnId ? "✏️ Edit Broadcast" : "📢 Broadcast Feeds"}</h2>
           
           <div className="bg-black/30 border border-[#D5C757]/30 p-2 rounded-lg text-[10px] font-mono text-[#D5C757] space-y-0.5">
-            <p className="font-bold">📋 NOTASI MARKDOWN OPERASIONAL BARU:</p>
+            <p className="font-bold">📋 NOTASI MARKDOWN:</p>
             <p>• Ketik <span className="text-white">*teks tebal*</span> ➔ <b>Tebal</b></p>
             <p>• Ketik <span className="text-white">_teks miring_</span> ➔ <i>Miring</i></p>
             <p>• Ketik <span className="text-white">~teks garis bawah~</span> ➔ <u>Garis Bawah</u></p>
@@ -733,6 +767,20 @@ export default function AdminPage() {
                   <button onClick={() => deleteAnnouncement(a.id)} className="text-[#CE4A2D] font-bold">Delete</button>
                 </div>
               </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
+          <h2 className="font-heading text-2xl text-white">{t("Reflection Prompts")}</h2>
+          <div className="mt-4 flex gap-2">
+            <input value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" placeholder={t("Add new prompt")} />
+            <button onClick={addPrompt} className="cta-btn px-4 py-2 text-xs">{t("Add")}</button>
+          </div>
+          <button onClick={seedDefaultPrompts} className="nav-chip mt-3 text-xs">{t("Seed default prompts")}</button>
+          <div className="mt-4 space-y-2">
+            {prompts.map((p) => (
+              <PromptEditor key={p.id} id={p.id} text={p.text} order={p.order} onSave={updatePrompt} onDelete={removePrompt} />
             ))}
           </div>
         </article>
@@ -824,7 +872,6 @@ export default function AdminPage() {
                       {attendanceTabFilter === "awal" && (row.evidenceText || "-")}
                       {attendanceTabFilter === "akhir" && (row.feedback || "-")}
                       
-                      {/* TAMPILAN DETAIL BARU UNTUK H-1 (ALASAN + MEDIS) */}
                       {attendanceTabFilter === "h1" && (
                         <>
                           {row.reasonText && row.reasonText !== "-" && (
