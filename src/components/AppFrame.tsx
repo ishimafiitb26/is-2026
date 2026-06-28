@@ -62,7 +62,7 @@ export default function AppFrame({
   return (
     <>
       <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(246,197,69,0.10),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(236,92,42,0.16),_transparent_45%),linear-gradient(140deg,_#0A0A0B_0%,_#0c0a10_50%,_#060507_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(246,197,69,0.10),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(236,92,42,0.16),_transparent_45%),linear-gradient(140deg,_rgba(10,10,11,0.55)_0%,_rgba(12,10,16,0.60)_50%,_rgba(6,5,7,0.65)_100%)]" />
         <div className="absolute left-[-8%] top-[-10%] h-72 w-72 rounded-full bg-[#F6C545]/10 blur-3xl" />
         <div className="absolute right-[-6%] top-[18%] h-80 w-80 rounded-full bg-[#EC5C2A]/16 blur-3xl" />
         <div className="absolute bottom-[-10%] left-[22%] h-96 w-96 rounded-full bg-[#452ABC]/14 blur-3xl" />

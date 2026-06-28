@@ -13,7 +13,9 @@
   --danger: #EC5C2A;           /* Oranye sebagai warna danger/peringatan */
 
   /* ── Tipografi ── */
-  
+  /* Title: Michroma, kapital */
+  /* Hero subhead: letter-spacing 230 (2.3em dalam satuan CSS), kapital */
+  /* Content/news: News Cycle Regular, letter-spacing 85 (0.085em) */
   --font-title: var(--font-michroma), "Michroma", sans-serif;
   --font-content: var(--font-news-cycle), "News Cycle", sans-serif;
 }
@@ -30,13 +32,21 @@ body {
   overflow-x: hidden;
   min-height: 100%;
   background: var(--background);
-  /* Dasar hitam netral, energi datang dari glow kuning & oranye —
-     biru-ungu tetap ada tapi sebagai kedalaman, bukan dominan */
+  /* Lapisan paling bawah: gambar galaksi/nebula.
+     Lapisan di atasnya: gradient kuning-oranye-biru-ungu yang sudah ada,
+     berfungsi sebagai overlay/filter biar teks tetap terbaca & tone warna
+     tetap konsisten dengan tema. Ganti path gambar di url() sesuai nama
+     file yang kamu taruh di folder public/images/. */
   background-image:
     radial-gradient(circle at 10% 0%, rgba(246, 197, 69, 0.10), transparent 38%),
     radial-gradient(circle at 100% 15%, rgba(236, 92, 42, 0.16), transparent 45%),
     radial-gradient(circle at 50% 100%, rgba(69, 42, 188, 0.14), transparent 50%),
-    linear-gradient(140deg, #0A0A0B 0%, #0c0a10 50%, #060507 100%);
+    linear-gradient(140deg, rgba(10,10,11,0.55) 0%, rgba(12,10,16,0.60) 50%, rgba(6,5,7,0.65) 100%),
+    url('/bg/bg-4.png');
+  background-size: cover, cover, cover, cover, cover;
+  background-position: center, center, center, center, center;
+  background-repeat: no-repeat;
+  background-attachment: fixed, fixed, fixed, fixed, fixed;
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
 }
