@@ -12,7 +12,7 @@ const osjurDays = [
   { value: "day_1", label: "Day 1 - Opening & Synchronizations" },
   { value: "day_2", label: "Day 2 - Rigel: Potential of The Stars" },
   { value: "day_3", label: "Day 3 - Vega: Weaving The Future" },
-  { value: "day_4", label: "Day 4 - Final Presentation & Closing" },
+  { value: "day_4", label: "Day 4 - Regulus: The Lion's Heart" },
   { value: "day_5", label: "Day 5 - Extra Operations Grid" },
   { value: "day_6", label: "Day 6 - Evaluation & Horizon" },
 ];

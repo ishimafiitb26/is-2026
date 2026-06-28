@@ -585,7 +585,7 @@ export default function AdminPage() {
               <option value="day_1">Day 1 - Opening & Synch</option>
               <option value="day_2">Day 2 - Core Operations</option>
               <option value="day_3">Day 3 - Vega: Weaving The Future</option>
-              <option value="day_4">Day 4 - Final Closing</option>
+              <option value="day_4">Day 4 - Regulus: The Lion's Heart</option>
               <option value="day_5">Day 5 - Extra Session</option>
               <option value="day_6">Day 6 - Backup Timeline</option>
             </select>
