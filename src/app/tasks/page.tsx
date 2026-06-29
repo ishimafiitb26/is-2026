@@ -336,7 +336,7 @@ export default function TasksPage() {
                 accept={effectiveSubmissionType === "image" ? "image/*" : ".pdf,.doc,.docx"}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEvidenceFile(e.target.files?.[0] ?? null)}
                 disabled={isTaskGateClosed}
-                className="w-full rounded-lg border border-white/25 bg-black/20 px-3 py-2 text-[#d8d3c6] cursor-pointer file:rounded file:border-0 file:bg-[#084D58] file:text-white file:px-2 file:py-0.5 file:text-xs"
+                className="w-full rounded-lg border border-white/25 bg-black/20 px-3 py-2 text-[#d8d3c6] cursor-pointer file:rounded file:border-0 file:bg-[#452ABC] file:text-white file:px-2 file:py-0.5 file:text-xs"
               />
             </label>
           )}

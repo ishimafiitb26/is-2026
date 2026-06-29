@@ -11,15 +11,13 @@ import { eventMetaRef, getCurrentTimestamp } from "@/lib/engagement";
 const osjurDays = [
   { value: "day_1", label: "Day 1 - Opening & Synchronizations" },
   { value: "day_2", label: "Day 2 - Rigel: Potential of The Stars" },
-  { value: "day_3", label: "Day 3 - Material Exploration" },
-  { value: "day_4", label: "Day 4 - Final Presentation & Closing" },
+  { value: "day_3", label: "Day 3 - Vega: Weaving The Future" },
+  { value: "day_4", label: "Day 4 - Regulus: The Lion's Heart" },
   { value: "day_5", label: "Day 5 - Extra Operations Grid" },
   { value: "day_6", label: "Day 6 - Evaluation & Horizon" },
 ];
 
 // DAFTAR HITAM TESTER: 
-// Akun-akun ini datanya akan tetap masuk ke database & CSV, 
-// TAPI TIDAK AKAN dihitung di kotak "Live Metrics" sebelah kanan.
 const TESTER_NIMS = ["webdevishimafiitb", "10224000"]; 
 
 interface AttendanceAwalStructure {
@@ -44,6 +42,7 @@ interface H1ConfirmationStructure {
   nim: string;
   day: string;
   status: string;
+  reasonText?: string; 
   condition: string;
   illnessName?: string;
   symptoms?: string;
@@ -68,11 +67,12 @@ export default function AttendancePage() {
   const [statusDDayAwal, setStatusDDayAwal] = useState<string>("hadir tepat waktu");
   const [statusDDayAkhir, setStatusDDayAkhir] = useState<string>("hadir");
   const [statusH1, setStatusH1] = useState<string>("hadir tepat waktu");
+  
+  const [h1ReasonText, setH1ReasonText] = useState<string>("");
+
   const [evidenceText, setEvidenceText] = useState<string>("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
-  
   const [evidenceFileH1, setEvidenceFileH1] = useState<File | null>(null);
-  
   const [feedbackText, setFeedbackText] = useState<string>("");
 
   const [condition, setCondition] = useState<string>("Tidak sakit");
@@ -93,6 +93,28 @@ export default function AttendancePage() {
 
   const studentNIM = user?.email ? user.email.split("@")[0] : "";
   const selectedDay = typeof firebaseMeta?.activeOsjurDay === "string" ? firebaseMeta.activeOsjurDay : "day_1";
+
+  // FITUR BARU: Timer Waktu Berjalan Real-time untuk Sistem Auto-Pilot
+  // Inisialisasi awal aman dari Hydration Mismatch
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
+  useEffect(() => {
+    // FIX CASCADING RENDER: Bungkus ke dalam setTimeout agar bersifat asynchronous (tidak sinkron langsung)
+    const immediateTimer = setTimeout(() => {
+      setCurrentTime(Date.now());
+    }, 0);
+
+    // Timer berjalan setiap detik
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    
+    // Pembersihan kedua timer saat komponen dilepas
+    return () => {
+      clearTimeout(immediateTimer);
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -130,18 +152,34 @@ export default function AttendancePage() {
     };
   }, [user, selectedDay]);
 
-  const isGateClosed = useMemo(() => {
-    if (!firebaseMeta) return false;
-    let fieldKey = `${selectedDay}_h1_deadline`;
-    if (activeTab === "dday_awal") fieldKey = `${selectedDay}_dday_awal_deadline`;
-    if (activeTab === "dday_akhir") fieldKey = `${selectedDay}_dday_akhir_deadline`;
+  // FIX AUTO-PILOT GATE: Hitung status (PENDING / OPEN / CLOSED) secara cerdas
+  const gateInfo = useMemo(() => {
+    if (!firebaseMeta) return { status: "CLOSED", openTime: null, closeTime: null };
+    
+    let openKey = `${selectedDay}_h1_open`;
+    let closeKey = `${selectedDay}_h1_deadline`;
+    if (activeTab === "dday_awal") {
+      openKey = `${selectedDay}_dday_awal_open`;
+      closeKey = `${selectedDay}_dday_awal_deadline`;
+    } else if (activeTab === "dday_akhir") {
+      openKey = `${selectedDay}_dday_akhir_open`;
+      closeKey = `${selectedDay}_dday_akhir_deadline`;
+    }
 
-    const targetDeadline = firebaseMeta[fieldKey];
-    if (!targetDeadline || typeof targetDeadline !== "string") return false;
-    return new Date() > new Date(targetDeadline);
-  }, [firebaseMeta, selectedDay, activeTab]);
+    const openStr = firebaseMeta[openKey] as string;
+    const closeStr = firebaseMeta[closeKey] as string;
 
-  // FIX PENGECUALIAN TESTER: Metrik mengabaikan akun yang ada di daftar TESTER_NIMS
+    // Jika admin belum setting waktu buka/tutup sama sekali
+    if (!openStr || !closeStr) return { status: "UNSET", openTime: null, closeTime: null };
+
+    const openTime = new Date(openStr).getTime();
+    const closeTime = new Date(closeStr).getTime();
+
+    if (currentTime < openTime) return { status: "PENDING", openTime, closeTime };
+    if (currentTime > closeTime) return { status: "CLOSED", openTime, closeTime };
+    return { status: "OPEN", openTime, closeTime };
+  }, [firebaseMeta, selectedDay, activeTab, currentTime]);
+
   const filteredDDayAwalMetrics = useMemo(() => {
     const validRecords = awalRecords.filter(r => !TESTER_NIMS.includes(r.nim));
     return {
@@ -172,7 +210,7 @@ export default function AttendancePage() {
 
   const handleDDayAwalSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isGateClosed || isLoading) return;
+    if (gateInfo.status !== "OPEN" || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
 
     if (!evidenceFile) {
@@ -221,7 +259,7 @@ export default function AttendancePage() {
 
   const handleDDayAkhirSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isGateClosed || isLoading) return;
+    if (gateInfo.status !== "OPEN" || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
     
     setIsLoading(true);
@@ -249,12 +287,18 @@ export default function AttendancePage() {
 
   const handleH1Submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isGateClosed || isLoading) return;
+    if (gateInfo.status !== "OPEN" || isLoading) return;
     if (!fullName.trim() || !studentNIM) return;
 
-    if (statusH1 !== "hadir tepat waktu" && !evidenceFileH1) {
-      setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto)!");
-      return;
+    if (statusH1 !== "hadir tepat waktu") {
+      if (!h1ReasonText.trim()) {
+        setSaveMessage("❌ GAGAL: Anda WAJIB mengisi deskripsi/alasan ketidakhadiran tepat waktu!");
+        return;
+      }
+      if (!evidenceFileH1) {
+        setSaveMessage("❌ GAGAL: Anda WAJIB melampirkan berkas bukti/surat keterangan (PDF/Foto)!");
+        return;
+      }
     }
 
     if (evidenceFileH1 && evidenceFileH1.size > 5 * 1024 * 1024) {
@@ -277,6 +321,7 @@ export default function AttendancePage() {
         nim: studentNIM,
         day: selectedDay,
         status: statusH1,
+        reasonText: statusH1 !== "hadir tepat waktu" ? h1ReasonText.trim() : "-",
         condition,
         illnessName: condition === "Sedang sakit" ? illnessName.trim() || "-" : "-",
         symptoms: condition === "Sedang sakit" ? symptoms.trim() || "-" : "-",
@@ -288,6 +333,7 @@ export default function AttendancePage() {
       });
       setSaveMessage("✅ BERHASIL: Paket Data Konfirmasi H-1 Anda resmi terkunci di sistem!");
       setFullName("");
+      setH1ReasonText(""); 
       setIllnessName("");
       setSymptoms("");
       setMedicineName("");
@@ -373,16 +419,27 @@ export default function AttendancePage() {
           </button>
         </nav>
 
-        {isGateClosed && (
-          <div className="col-span-full panel rounded-2xl border border-[#EC5C2A]/50 bg-[#EC5C2A]/10 p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0">
+        {/* UI BANNER CANGGIH: Otomatis berubah pesan menyesuaikan PENDING / UNSET / CLOSED */}
+        {gateInfo.status !== "OPEN" && (
+          <div className={`col-span-full panel rounded-2xl border p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0 ${gateInfo.status === "PENDING" ? 'border-[#D5C757]/50 bg-[#D5C757]/10' : 'border-[#CE4A2D]/50 bg-[#CE4A2D]/10'}`}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 text-[#EC5C2A]"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 22 12 22ZM13 16H11V14H13V16ZM13 12H11V7H13V12Z" fill="currentColor"/></svg>
-              <span className="text-xs sm:text-sm font-bold text-[#EC5C2A] uppercase tracking-wider text-center break-words whitespace-normal">
-                ACCESS RESTRICTION ACTUATED: GATE CLOSED
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`shrink-0 ${gateInfo.status === "PENDING" ? 'text-[#D5C757]' : 'text-[#CE4A2D]'}`}>
+                {gateInfo.status === "PENDING" ? (
+                  <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="currentColor"/>
+                ) : (
+                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 22 12 22ZM13 16H11V14H13V16ZM13 12H11V7H13V12Z" fill="currentColor"/>
+                )}
+              </svg>
+              <span className={`text-xs sm:text-sm font-bold uppercase tracking-wider text-center break-words whitespace-normal ${gateInfo.status === "PENDING" ? 'text-[#D5C757]' : 'text-[#CE4A2D]'}`}>
+                {gateInfo.status === "PENDING" ? "ACCESS RESTRICTION: GATE PENDING" : gateInfo.status === "UNSET" ? "ACCESS RESTRICTION: GATE UNSET" : "ACCESS RESTRICTION ACTUATED: GATE CLOSED"}
               </span>
             </div>
-            <p className="text-[10px] sm:text-xs text-[#E1D9F9]/50 mt-2 sm:mt-1 break-words whitespace-normal px-2">
-              Sesi presensi berakhir atau belum dibuka. Anda tidak dapat mengirimkan data kehadiran pada sesi ini.
+            <p className="text-[10px] sm:text-xs text-[#aaa391] mt-2 sm:mt-1 break-words whitespace-normal px-2">
+              {gateInfo.status === "PENDING"
+                ? `Sesi formulir presensi ini akan otomatis dibuka pada: ${new Date(gateInfo.openTime!).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} WIB.`
+                : gateInfo.status === "UNSET"
+                ? "Jadwal presensi untuk sesi ini belum dikonfigurasi oleh panitia pusat."
+                : `Sesi formulir pengumpulan log presensi telah berakhir pada: ${new Date(gateInfo.closeTime!).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} WIB.`}
             </p>
           </div>
         )}
@@ -405,6 +462,7 @@ export default function AttendancePage() {
 
               {renderNotificationBanner()}
 
+              {/* FIX DISABLE: Semua input disable jika gateInfo.status !== "OPEN" */}
               <form onSubmit={handleH1Submit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
@@ -412,14 +470,14 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/10 bg-[#E1D9F9]/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-semibold">Nama Lengkap Sesuai Berkas</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B]/40 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545]" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap Sesuai Berkas</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[E: #0A0A0B]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Estimasi Konfirmasi Kehadiran</span>
-                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none cursor-pointer text-ellipsis overflow-hidden">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Estimasi Konfirmasi Kehadiran</span>
+                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[E: #0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                     <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
                     <option value="hadir menyusul">Izin Menyusul</option>
                     <option value="izin meninggalkan">Izin Meninggalkan</option>
@@ -428,14 +486,41 @@ export default function AttendancePage() {
                 </label>
 
                 {statusH1 !== "hadir tepat waktu" && (
-                  <div className="bg-[#EC5C2A]/10 p-4 rounded-xl border border-[#EC5C2A]/30 space-y-1.5 shadow-inner w-full min-w-0 animate-revealDown">
-                    <label className="text-[10px] sm:text-xs text-[#EC5C2A] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#EC5C2A] shrink-0 mt-1 sm:mt-0" />
-                      <span>🖼️ Upload Bukti Keterangan / Surat Izin (WAJIB)</span>
-                    </label>
-                    <p className="text-[9px] sm:text-[10px] text-[#E1D9F9]/50 font-medium break-words whitespace-normal leading-relaxed">Karena Anda tidak dapat hadir tepat waktu, Anda diwajibkan melampirkan berkas bukti pendukung (PDF/Foto). Maksimal 5MB.</p>
+                  <div className="bg-[#CE4A2D]/10 p-4 sm:p-5 rounded-xl border border-[#CE4A2D]/30 space-y-5 shadow-inner w-full min-w-0 animate-revealDown">
                     
-                    <input type="file" accept="image/*,.pdf" onChange={(e) => setEvidenceFileH1(e.target.files?.[0] || null)} disabled={isGateClosed || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#E1D9F9]/50 cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#EC5C2A] file:text-[#E1D9F9] file:hover:bg-[#EC5C2A]/80 file:transition" />
+                    <label className="block space-y-2">
+                      <span className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                        <span>📝 Alasan / Penjelasan Ketidakhadiran (WAJIB)</span>
+                      </span>
+                      <textarea
+                        value={h1ReasonText}
+                        onChange={(e) => setH1ReasonText(e.target.value)}
+                        disabled={gateInfo.status !== "OPEN" || isLoading}
+                        placeholder="Tuliskan alasan yang jelas dan spesifik mengapa Anda tidak bisa hadir tepat waktu..."
+                        className="w-full rounded-xl border border-[#CE4A2D]/40 bg-black/20 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#CE4A2D] transition font-body resize-y"
+                        rows={2}
+                        required
+                      />
+                    </label>
+
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                        <span>🖼️ Upload Bukti Keterangan / Surat Izin (WAJIB)</span>
+                      </label>
+                      <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">
+                        Anda diwajibkan melampirkan berkas bukti pendukung (PDF/Foto). Maksimal 5MB.
+                      </p>
+                      
+                      <input 
+                        type="file" 
+                        accept="image/*,.pdf" 
+                        onChange={(e) => setEvidenceFileH1(e.target.files?.[0] || null)} 
+                        disabled={gateInfo.status !== "OPEN" || isLoading} 
+                        className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#CE4A2D] file:text-white file:hover:bg-[#CE4A2D]/80 file:transition" 
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -449,8 +534,8 @@ export default function AttendancePage() {
                   </div>
 
                   <label className="block space-y-1">
-                    <span className="text-[10px] sm:text-[11px] text-[#E1D9F9]/70 font-medium">Kondisi Saat Ini?</span>
-                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] cursor-pointer text-ellipsis overflow-hidden">
+                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Saat Ini?</span>
+                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[E: #0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
                       <option value="Tidak sakit">Sehat</option>
                       <option value="Sedang sakit">Sedang Sakit</option>
                     </select>
@@ -460,19 +545,19 @@ export default function AttendancePage() {
                     <div className="bg-black/30 border border-[#452ABC]/30 p-4 rounded-2xl space-y-4 animate-revealUp shadow-inner w-full min-w-0">
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Diagnosa / Riwayat Penyakit?</span>
-                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545]" required />
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Diagnosa / Riwayat Penyakit?</span>
+                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Gejala yang dialami?</span>
-                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545]" required />
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala yang dialami?</span>
+                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Sedang Mengonsumsi Obat?</span>
-                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={isGateClosed || isLoading} className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none cursor-pointer text-ellipsis overflow-hidden">
+                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Sedang Mengonsumsi Obat?</span>
+                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full min-w-0 rounded-xl border border-white/15 bg-[E: #0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                             <option value="Belum">Belum / Tidak Konsumsi Obat</option>
                             <option value="Sudah">Sudah Konsumsi Obat</option>
                           </select>
@@ -480,8 +565,8 @@ export default function AttendancePage() {
                         
                         {tookMedicine === "Sudah" && (
                           <label className="block space-y-1 animate-revealUp min-w-0">
-                            <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Nama Obat yang Dikonsumsi:</span>
-                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545]" required />
+                            <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Nama Obat yang Dikonsumsi:</span>
+                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                           </label>
                         )}
                       </div>
@@ -489,8 +574,9 @@ export default function AttendancePage() {
                   )}
                 </div>
 
-                <button type="submit" disabled={isGateClosed || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
-                  {isLoading ? "Mengirim Data... ⏳" : "Submit Konfirmasi H-1"}
+                {/* FIX UX: Tombol Submit beradaptasi dengan status Gate */}
+                <button type="submit" disabled={gateInfo.status !== "OPEN" || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
+                  {isLoading ? "Mengirim Data... ⏳" : gateInfo.status === "PENDING" ? "Gerbang Belum Buka 🔒" : gateInfo.status === "CLOSED" ? "Gerbang Ditutup 🔒" : gateInfo.status === "UNSET" ? "Jadwal Belum Diatur 🔒" : "Submit Konfirmasi H-1"}
                 </button>
               </form>
             </article>
@@ -518,14 +604,14 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/10 bg-[#E1D9F9]/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] font-mono font-bold opacity-40 outline-none select-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] transition" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[E: #0A0A0B]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Status Kehadiran</span>
-                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] cursor-pointer font-medium text-ellipsis overflow-hidden">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
+                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[E: #0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
                     <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
                     <option value="izin menyusul">Izin Menyusul</option>
                     <option value="izin meninggalkan">Izin Meninggalkan</option>
@@ -534,8 +620,8 @@ export default function AttendancePage() {
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Catatan / Keterangan Bukti</span>
-                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B]/50 px-3 py-2 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] transition font-body resize-y" rows={3} />
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan / Keterangan Bukti</span>
+                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[E: #0A0A0B]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
                 </label>
 
                 <div className="bg-black/20 p-4 rounded-xl border border-[#EC5C2A]/30 space-y-1.5 shadow-inner w-full min-w-0">
@@ -545,11 +631,11 @@ export default function AttendancePage() {
                   </label>
                   <p className="text-[9px] sm:text-[10px] text-[#E1D9F9]/50 font-medium break-words whitespace-normal leading-relaxed">Form presensi akan ditolak sistem jika belum melampirkan foto dokumentasi diri di lokasi. Maksimal 5MB.</p>
                   
-                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={isGateClosed || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#E1D9F9]/50 cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#452ABC] file:text-[#F6C545] file:hover:bg-[#452ABC]/80 file:transition" />
+                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#452ABC] file:text-[#D5C757] file:hover:bg-[#452ABC]/80 file:transition" />
                 </div>
 
-                <button type="submit" disabled={isGateClosed || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer break-words whitespace-normal">
-                  {isLoading ? "Mengirim Data... ⏳" : "Submit Presensi Awal"}
+                <button type="submit" disabled={gateInfo.status !== "OPEN" || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer break-words whitespace-normal">
+                  {isLoading ? "Mengirim Data... ⏳" : gateInfo.status === "PENDING" ? "Gerbang Belum Buka 🔒" : gateInfo.status === "CLOSED" ? "Gerbang Ditutup 🔒" : gateInfo.status === "UNSET" ? "Jadwal Belum Diatur 🔒" : "Submit Presensi Awal"}
                 </button>
               </form>
             </article>
@@ -577,14 +663,14 @@ export default function AttendancePage() {
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/10 bg-[#E1D9F9]/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545]" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[E: #0A0A0B]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Status Konfirmasi Checkout</span>
-                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={isGateClosed || isLoading} className="w-full rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none cursor-pointer text-ellipsis overflow-hidden">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
+                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[E: #0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                     <option value="hadir">Mengikuti Seluruh Rangkaian Acara Hari Ini</option>
                     <option value="tidak hadir">Izin Meninggalkan</option>
                   </select>
@@ -595,11 +681,11 @@ export default function AttendancePage() {
                     <span className="mt-0.5">💬</span> 
                     <span>Lembar Feedback, Evaluasi, & Insight Esensi Hari Ini</span>
                   </span>
-                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={isGateClosed || isLoading} placeholder="Tuliskan kritik, saran, hambatan lapangan, atau intisari pemahaman materi yang Anda petik hari ini..." className="w-full rounded-xl border border-[#E1D9F9]/15 bg-[#0A0A0B]/50 px-3 py-2 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] transition font-body resize-y" rows={4} required />
+                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Tuliskan kritik, saran, hambatan lapangan, atau intisari pemahaman materi yang Anda petik hari ini..." className="w-full rounded-xl border border-white/15 bg-[E: #0A0A0B]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
                 </label>
 
-                <button type="submit" disabled={isGateClosed || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
-                  {isLoading ? "Mengirim Data... ⏳" : "Submit Check-Out"}
+                <button type="submit" disabled={gateInfo.status !== "OPEN" || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
+                  {isLoading ? "Mengirim Data... ⏳" : gateInfo.status === "PENDING" ? "Gerbang Belum Buka 🔒" : gateInfo.status === "CLOSED" ? "Gerbang Ditutup 🔒" : gateInfo.status === "UNSET" ? "Jadwal Belum Diatur 🔒" : "Submit Check-Out"}
                 </button>
               </form>
             </article>

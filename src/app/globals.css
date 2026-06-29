@@ -32,11 +32,7 @@ body {
   overflow-x: hidden;
   min-height: 100%;
   background: var(--background);
-  /* Lapisan paling bawah: gambar galaksi/nebula.
-     Lapisan di atasnya: gradient kuning-oranye-biru-ungu yang sudah ada,
-     berfungsi sebagai overlay/filter biar teks tetap terbaca & tone warna
-     tetap konsisten dengan tema. Ganti path gambar di url() sesuai nama
-     file yang kamu taruh di folder public/images/. */
+  
   background-image:
     radial-gradient(circle at 10% 0%, rgba(246, 197, 69, 0.10), transparent 38%),
     radial-gradient(circle at 100% 15%, rgba(236, 92, 42, 0.16), transparent 45%),

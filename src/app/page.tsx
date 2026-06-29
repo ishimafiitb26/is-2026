@@ -95,7 +95,7 @@ export default function Home() {
   }, [briefing, countdown, schedule]);
 
   if (!isHydrated) {
-    return <div className="min-h-screen bg-[#0F282F]" />;
+    return <div className="min-h-screen bg-[E: #0A0A0B]" />;
   }
 
   if (showGate) {
@@ -104,7 +104,7 @@ export default function Home() {
         className="fixed inset-0 z-50 flex flex-col items-center justify-center text-center bg-cover bg-center"
         style={{ backgroundImage: "url('/bg/bg-1.png')" }}
       >
-        <div className="absolute inset-0 bg-[#0F282F]/75 backdrop-blur-sm z-0" />
+        <div className="absolute inset-0 bg-[E: #0A0A0B]/75 backdrop-blur-sm z-0" />
         
         <div className="relative z-10 flex flex-col items-center max-w-xl px-6 animate-revealUp">
           <div className="text-[#D5C757] mb-4 flex items-center justify-center animate-pulse">
