@@ -9,15 +9,14 @@ import { db } from "@/lib/firebase";
 import { eventMetaRef, getCurrentTimestamp } from "@/lib/engagement";
 
 const osjurDays = [
-  { value: "day_1", label: "Day 1 - Opening & Synchronizations" },
-  { value: "day_2", label: "Day 2 - Rigel: Potential of The Stars" },
-  { value: "day_3", label: "Day 3 - Vega: Weaving The Future" },
-  { value: "day_4", label: "Day 4 - Regulus: The Lion's Heart" },
-  { value: "day_5", label: "Day 5 - Extra Operations Grid" },
-  { value: "day_6", label: "Day 6 - Evaluation & Horizon" },
+  { value: "fase2_1", label: "Fase 2 - Day 1: Opening & Synchronizations" },
+  { value: "fase2_2", label: "Fase 2 - Day 2: Rigel: Potential of The Stars" },
+  { value: "fase2_3", label: "Fase 2 - Day 3: Vega: Weaving The Future" },
+  { value: "fase2_4", label: "Fase 2 - Day 4: Regulus: The Lion's Heart" },
+  { value: "fase2_5", label: "Fase 2 - Day 5: Extra Operations Grid" },
+  { value: "fase2_6", label: "Fase 2 - Day 6: Evaluation & Horizon" },
 ];
 
-// DAFTAR HITAM TESTER: 
 const TESTER_NIMS = ["webdevishimafiitb", "10224000"]; 
 
 interface AttendanceAwalStructure {
@@ -92,24 +91,19 @@ export default function AttendancePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const studentNIM = user?.email ? user.email.split("@")[0] : "";
-  const selectedDay = typeof firebaseMeta?.activeOsjurDay === "string" ? firebaseMeta.activeOsjurDay : "day_1";
+  const selectedDay = typeof firebaseMeta?.activeOsjurDay === "string" ? firebaseMeta.activeOsjurDay : "fase2_1";
 
-  // FITUR BARU: Timer Waktu Berjalan Real-time untuk Sistem Auto-Pilot
-  // Inisialisasi awal aman dari Hydration Mismatch
   const [currentTime, setCurrentTime] = useState<number>(0);
 
   useEffect(() => {
-    // FIX CASCADING RENDER: Bungkus ke dalam setTimeout agar bersifat asynchronous (tidak sinkron langsung)
     const immediateTimer = setTimeout(() => {
       setCurrentTime(Date.now());
     }, 0);
 
-    // Timer berjalan setiap detik
     const timer = setInterval(() => {
       setCurrentTime(Date.now());
     }, 1000);
     
-    // Pembersihan kedua timer saat komponen dilepas
     return () => {
       clearTimeout(immediateTimer);
       clearInterval(timer);
@@ -124,15 +118,15 @@ export default function AttendancePage() {
       console.debug("Firebase alignment bypassed:", err.message);
     };
 
-    const unsubAwal = onSnapshot(collection(db, `attendance_day_${targetDayNumber}`), (snap) => {
+    const unsubAwal = onSnapshot(collection(db, `fase2_attendance_day_${targetDayNumber}`), (snap) => {
       setAwalRecords(snap.docs.map((d) => d.data() as AttendanceAwalStructure));
     }, silentErrorHandler);
 
-    const unsubAkhir = onSnapshot(collection(db, `attendance_akhir_day_${targetDayNumber}`), (snap) => {
+    const unsubAkhir = onSnapshot(collection(db, `fase2_attendance_akhir_day_${targetDayNumber}`), (snap) => {
       setFeedbackRecords(snap.docs.map((d) => d.data() as AttendanceAkhirStructure));
     }, silentErrorHandler);
 
-    const unsubH1 = onSnapshot(collection(db, `h1_confirmations_day_${targetDayNumber}`), (snap) => {
+    const unsubH1 = onSnapshot(collection(db, `fase2_h1_confirmations_day_${targetDayNumber}`), (snap) => {
       setH1Records(snap.docs.map((d) => d.data() as H1ConfirmationStructure));
     }, silentErrorHandler);
 
@@ -152,7 +146,6 @@ export default function AttendancePage() {
     };
   }, [user, selectedDay]);
 
-  // FIX AUTO-PILOT GATE: Hitung status (PENDING / OPEN / CLOSED) secara cerdas
   const gateInfo = useMemo(() => {
     if (!firebaseMeta) return { status: "CLOSED", openTime: null, closeTime: null };
     
@@ -169,7 +162,6 @@ export default function AttendancePage() {
     const openStr = firebaseMeta[openKey] as string;
     const closeStr = firebaseMeta[closeKey] as string;
 
-    // Jika admin belum setting waktu buka/tutup sama sekali
     if (!openStr || !closeStr) return { status: "UNSET", openTime: null, closeTime: null };
 
     const openTime = new Date(openStr).getTime();
@@ -235,7 +227,7 @@ export default function AttendancePage() {
         evidencePublicId = upload.public_id;
       }
 
-      await setDoc(doc(db, `attendance_day_${selectedDay.split("_")[1]}`, studentNIM), {
+      await setDoc(doc(db, `fase2_attendance_day_${selectedDay.split("_")[1]}`, studentNIM), {
         fullName: fullName.trim(),
         nim: studentNIM,
         day: selectedDay,
@@ -266,7 +258,7 @@ export default function AttendancePage() {
     setSaveMessage("⏳ Memproses otentikasi data check-out harian Anda...");
 
     try {
-      await setDoc(doc(db, `attendance_akhir_day_${selectedDay.split("_")[1]}`, studentNIM), {
+      await setDoc(doc(db, `fase2_attendance_akhir_day_${selectedDay.split("_")[1]}`, studentNIM), {
         fullName: fullName.trim(),
         nim: studentNIM,
         day: selectedDay,
@@ -316,7 +308,7 @@ export default function AttendancePage() {
         evidenceUrl = upload.secure_url;
       }
 
-      await setDoc(doc(db, `h1_confirmations_day_${selectedDay.split("_")[1]}`, studentNIM), {
+      await setDoc(doc(db, `fase2_h1_confirmations_day_${selectedDay.split("_")[1]}`, studentNIM), {
         fullName: fullName.trim(),
         nim: studentNIM,
         day: selectedDay,
@@ -419,7 +411,6 @@ export default function AttendancePage() {
           </button>
         </nav>
 
-        {/* UI BANNER CANGGIH: Otomatis berubah pesan menyesuaikan PENDING / UNSET / CLOSED */}
         {gateInfo.status !== "OPEN" && (
           <div className={`col-span-full panel rounded-2xl border p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0 ${gateInfo.status === "PENDING" ? 'border-[#D5C757]/50 bg-[#D5C757]/10' : 'border-[#CE4A2D]/50 bg-[#CE4A2D]/10'}`}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full">
@@ -462,7 +453,6 @@ export default function AttendancePage() {
 
               {renderNotificationBanner()}
 
-              {/* FIX DISABLE: Semua input disable jika gateInfo.status !== "OPEN" */}
               <form onSubmit={handleH1Submit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
@@ -574,7 +564,6 @@ export default function AttendancePage() {
                   )}
                 </div>
 
-                {/* FIX UX: Tombol Submit beradaptasi dengan status Gate */}
                 <button type="submit" disabled={gateInfo.status !== "OPEN" || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
                   {isLoading ? "Mengirim Data... ⏳" : gateInfo.status === "PENDING" ? "Gerbang Belum Buka 🔒" : gateInfo.status === "CLOSED" ? "Gerbang Ditutup 🔒" : gateInfo.status === "UNSET" ? "Jadwal Belum Diatur 🔒" : "Submit Konfirmasi H-1"}
                 </button>

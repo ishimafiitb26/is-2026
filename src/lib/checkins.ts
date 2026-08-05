@@ -8,18 +8,8 @@ export const h1Statuses = [
 ] as const;
 
 export const expectedRoster = [
-  "Alya Putri",
-  "Bima Pratama",
-  "Citra Lestari",
-  "Damar Wijaya",
-  "Eka Sari",
-  "Fajar Nugraha",
-  "Gita Maheswari",
-  "Hana Septiani",
-  "Iqbal Ramadhan",
-  "Jihan Aulia",
-  "Kirana Putri",
-  "Luthfi Hakim",
+  "Peserta 1",
+  "Peserta 2",
 ];
 
 export function normalizeName(value: string) {

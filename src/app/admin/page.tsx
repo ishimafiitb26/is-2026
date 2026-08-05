@@ -116,9 +116,9 @@ export default function AdminPage() {
   const [countdownInput, setCountdownInput] = useState<string>("");
   const [scheduleInput, setScheduleInput] = useState<string>("");
 
-  const [activeOsjurDay, setActiveOsjurDay] = useState<string>("day_1");
+  const [activeOsjurDay, setActiveOsjurDay] = useState<string>("fase2_1");
 
-  const [targetDeadlineDay, setTargetDeadlineDay] = useState<string>("day_1");
+  const [targetDeadlineDay, setTargetDeadlineDay] = useState<string>("fase2_1");
   
   const [currentH1Open, setCurrentH1Open] = useState<string>("");
   const [currentAwalOpen, setCurrentAwalOpen] = useState<string>("");
@@ -157,7 +157,7 @@ export default function AdminPage() {
   const [newLinkUrl, setNewLinkUrl] = useState<string>("");
   const [announcementPosterFile, setAnnouncementPosterFile] = useState<File | null>(null);
 
-  const [attendanceDayFilter, setAttendanceDayFilter] = useState<string>("day_1");
+  const [attendanceDayFilter, setAttendanceDayFilter] = useState<string>("fase2_1");
   const [attendanceTabFilter, setAttendanceTabFilter] = useState<"awal" | "akhir" | "h1">("awal");
   const [adminAttendanceRecords, setAdminAttendanceRecords] = useState<AttendanceViewRow[]>([]);
 
@@ -183,7 +183,7 @@ export default function AdminPage() {
         setBriefingInput(meta.latestBriefing || "");
         setCountdownInput(meta.countdownText || "");
         setScheduleInput(meta.todaySchedule || "");
-        setActiveOsjurDay(meta.activeOsjurDay || "day_1");
+        setActiveOsjurDay(meta.activeOsjurDay || "fase2_1");
 
         if (isFirstMetaLoad && meta.activeOsjurDay) {
           setTargetDeadlineDay(meta.activeOsjurDay);
@@ -220,10 +220,14 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (role !== "admin") return;
-    const targetDayNumber = attendanceDayFilter.split("_")[1];
-    let collectionName = `attendance_day_${targetDayNumber}`;
-    if (attendanceTabFilter === "akhir") collectionName = `attendance_akhir_day_${targetDayNumber}`;
-    if (attendanceTabFilter === "h1") collectionName = `h1_confirmations_day_${targetDayNumber}`;
+    
+    const isFase2 = attendanceDayFilter.startsWith("fase2_");
+    const targetDayNumber = attendanceDayFilter.split("_").pop();
+    const prefix = isFase2 ? "fase2_" : "";
+
+    let collectionName = `${prefix}attendance_day_${targetDayNumber}`;
+    if (attendanceTabFilter === "akhir") collectionName = `${prefix}attendance_akhir_day_${targetDayNumber}`;
+    if (attendanceTabFilter === "h1") collectionName = `${prefix}h1_confirmations_day_${targetDayNumber}`;
 
     return onSnapshot(collection(db, collectionName), (snapshot) => {
       setAdminAttendanceRecords(snapshot.docs.map((docItem) => docItem.data() as AttendanceViewRow));
@@ -573,7 +577,6 @@ export default function AdminPage() {
       <article className="panel p-6 space-y-4 rounded-2xl border border-[#084D58]/30">
         <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config & Auto-Pilot Gates</h2>
         
-        {/* FIX UI: Memasukkan kembali Input Countdown dan merapikan Grid */}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1">
             <span className="text-xs text-[#aaa391]">Target Total Quota Peserta</span>
@@ -582,12 +585,12 @@ export default function AdminPage() {
           <label className="block space-y-1">
             <span className="text-xs font-bold text-teal-400">Set Hari Presensi Aktif untuk Peserta Saat Ini</span>
             <select value={activeOsjurDay} onChange={(e) => setActiveOsjurDay(e.target.value)} className="w-full rounded-xl border border-teal-500/50 bg-[#0F282F]/80 px-3 py-2 text-sm text-teal-400 font-bold outline-none cursor-pointer">
-              <option value="day_1">Day 1 - Opening & Synch</option>
-              <option value="day_2">Day 2 - Core Operations</option>
-              <option value="day_3">Day 3 - Vega: Weaving The Future</option>
-              <option value="day_4">Day 4 - Regulus: The Lion's Heart</option>
-              <option value="day_5">Day 5 - Extra Session</option>
-              <option value="day_6">Day 6 - Backup Timeline</option>
+              <option value="fase2_1">Fase 2 - Day 1: Opening & Synch</option>
+              <option value="fase2_2">Fase 2 - Day 2: Core Operations</option>
+              <option value="fase2_3">Fase 2 - Day 3: Vega: Weaving The Future</option>
+              <option value="fase2_4">Fase 2 - Day 4: Regulus: The Lion's Heart</option>
+              <option value="fase2_5">Fase 2 - Day 5: Extra Session</option>
+              <option value="fase2_6">Fase 2 - Day 6: Backup Timeline</option>
             </select>
           </label>
           <label className="block space-y-1">
@@ -599,7 +602,6 @@ export default function AdminPage() {
             <input value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
           </label>
           
-          {/* FITUR INPUT COUNTDOWN */}
           <label className="block space-y-1 sm:col-span-2">
             <span className="text-xs text-[#aaa391]">Countdown Text</span>
             <input value={countdownInput} onChange={(e) => setCountdownInput(e.target.value)} placeholder="Contoh: 08:00 WIB" type="text" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-sm text-white" />
@@ -613,32 +615,28 @@ export default function AdminPage() {
             <label className="block space-y-1 max-w-sm">
               <span className="text-[11px] text-[#aaa391] uppercase tracking-wider">Pilih Hari Yang Ingin Diatur:</span>
               <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2.5 rounded-lg font-bold cursor-pointer outline-none focus:border-[#D5C757]">
-                <option value="day_1">Day 1 - Opening & Synch</option>
-                <option value="day_2">Day 2 - Core Operations</option>
-                <option value="day_3">Day 3 - Vega: Weaving The Future</option>
-                <option value="day_4">Day 4 - Regulus: The Lion's Heart</option>
-                <option value="day_5">Day 5 - Extra Session</option>
-                <option value="day_6">Day 6 - Backup Timeline</option>
+                <option value="fase2_1">Fase 2 - Day 1: Opening & Synch</option>
+                <option value="fase2_2">Fase 2 - Day 2: Core Operations</option>
+                <option value="fase2_3">Fase 2 - Day 3: Vega: Weaving The Future</option>
+                <option value="fase2_4">Fase 2 - Day 4: Regulus: The Lion's Heart</option>
+                <option value="fase2_5">Fase 2 - Day 5: Extra Session</option>
+                <option value="fase2_6">Fase 2 - Day 6: Backup Timeline</option>
               </select>
             </label>
 
-            {/* FIX OVERFLOW: Mengubah sm:grid-cols-3 menjadi lg:grid-cols-3 agar memanjang ke bawah di layar HP (Responsive) */}
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-              {/* Box H-1 */}
               <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
                 <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">📅 H-1 Confirmation</span>
                 <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentH1Open} onChange={(e) => setCurrentH1Open(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
                 <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentH1Deadline} onChange={(e) => setCurrentH1Deadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
               </div>
               
-              {/* Box Check-In */}
               <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
                 <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">🚀 Check-In Awal</span>
                 <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentAwalOpen} onChange={(e) => setCurrentAwalOpen(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
                 <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentAwalDeadline} onChange={(e) => setCurrentAwalDeadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
               </div>
 
-              {/* Box Check-Out */}
               <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
                 <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">🏁 Check-Out Akhir</span>
                 <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentAkhirOpen} onChange={(e) => setCurrentAkhirOpen(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
@@ -839,9 +837,22 @@ export default function AdminPage() {
           <div className="flex gap-2 items-center">
             <button type="button" onClick={downloadAttendanceCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Filtered Attendance CSV</button>
             <select value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
-              <option value="day_1">Day 1</option> <option value="day_2">Day 2</option>
-              <option value="day_3">Day 3</option> <option value="day_4">Day 4</option>
-              <option value="day_5">Day 5</option> <option value="day_6">Day 6</option>
+              <optgroup label="FASE 2 (Aktif)">
+                <option value="fase2_1">Fase 2 - Day 1</option>
+                <option value="fase2_2">Fase 2 - Day 2</option>
+                <option value="fase2_3">Fase 2 - Day 3</option>
+                <option value="fase2_4">Fase 2 - Day 4</option>
+                <option value="fase2_5">Fase 2 - Day 5</option>
+                <option value="fase2_6">Fase 2 - Day 6</option>
+              </optgroup>
+              <optgroup label="FASE 1 (Arsip)">
+                <option value="day_1">Fase 1 - Day 1</option>
+                <option value="day_2">Fase 1 - Day 2</option>
+                <option value="day_3">Fase 1 - Day 3</option>
+                <option value="day_4">Fase 1 - Day 4</option>
+                <option value="day_5">Fase 1 - Day 5</option>
+                <option value="day_6">Fase 1 - Day 6</option>
+              </optgroup>
             </select>
             <select value={attendanceTabFilter} onChange={(e) => setAttendanceTabFilter(e.target.value as "awal" | "akhir" | "h1")} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
               <option value="awal">Check-In</option> <option value="akhir">Check-Out</option> <option value="h1">H-1 Medis</option>
