@@ -575,7 +575,7 @@ export default function AdminPage() {
       )}
 
       <article className="panel p-6 space-y-4 rounded-2xl border border-[#084D58]/30">
-        <h2 className="font-heading text-2xl text-[#D5C757]">Global Dashboard Config & Auto-Pilot Gates</h2>
+        <h2 className="font-heading text-2xl text-[#D5C757]">PENGATURAN PRESENSI</h2>
         
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1">
