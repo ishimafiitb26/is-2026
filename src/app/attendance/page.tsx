@@ -454,7 +454,7 @@ export default function AttendancePage() {
                   </label>
                   <label className="block space-y-1 min-w-0">
                     <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Masukkan nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
@@ -529,11 +529,11 @@ export default function AttendancePage() {
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
                           <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Diagnosa atau Riwayat Penyakit</span>
-                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Asma, Vertigo, Mag Akut..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Asma, Vertigo, Anemia, etc." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                         <label className="block space-y-1 min-w-0">
                           <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala yang dialami</span>
-                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Nafas pendek, pusing, mual..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Sesak napas, pusing, mual, etc." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                         </label>
                       </div>
 
@@ -584,7 +584,7 @@ export default function AttendancePage() {
                   </label>
                   <label className="block space-y-1 min-w-0">
                     <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Ketik nama lengkap..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
                   </label>
                 </div>
 
@@ -640,7 +640,7 @@ export default function AttendancePage() {
                   </label>
                   <label className="block space-y-1 min-w-0">
                     <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Masukkan nama lengkap maba..." className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
                   </label>
                 </div>
 
