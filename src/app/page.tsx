@@ -14,8 +14,6 @@ interface AnnouncementStructure {
   posterUrl?: string;
   links?: Array<{ label: string; url: string }>;
 }
-
-// Poin 6: Helper Parser untuk mengubah simbol Markdown menjadi tag HTML styling aman
 function parseMarkdownToHtml(text: string): string {
   if (!text) return "";
   return text
@@ -85,7 +83,6 @@ export default function Home() {
     };
   }, []);
 
-  // B.2: Menghitung jumlah kartu info yang valid diisi admin untuk menentukan susunan kolom grid
   const visibleCardsCount = useMemo(() => {
     return [
       briefing && briefing.trim() !== "",
@@ -139,7 +136,6 @@ export default function Home() {
   return (
     <div className="space-y-6">
       <section className="panel p-6 sm:p-8">
-        <p className="status-pill">Operations Feed</p>
         <h1 className="mt-4 font-heading text-5xl leading-none tracking-wider text-[#f2f1ec] sm:text-6xl">
           Welcome Astravara!
         </h1>
@@ -167,7 +163,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* B.2: Card Ringkasan Informasi Otomatis Hilang Total dari Layar Jika Dikosongkan Admin */}
       {visibleCardsCount > 0 && (
         <section className={`grid gap-3 ${visibleCardsCount === 3 ? "sm:grid-cols-3" : visibleCardsCount === 2 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
           {briefing && briefing.trim() !== "" && (
@@ -192,13 +187,12 @@ export default function Home() {
       )}
 
       <section className="space-y-4">
-        <h2 className="font-heading text-2xl text-[#D5C757] tracking-wider">{t("Broadcast Feed Log")}</h2>
+        <h2 className="font-heading text-2xl text-[#D5C757] tracking-wider">{t("Broadcast")}</h2>
         {feedAnnouncements.length > 0 ? (
           feedAnnouncements.map((ann) => (
             <article key={ann.id} className="panel p-5 space-y-4 border border-white/5 bg-black/5">
               <h3 className="text-xl font-bold text-[#F2EDEC] border-b border-white/5 pb-1">{ann.title}</h3>
               
-              {/* Poin 1: Poster/Foto Berkas Pengumuman Muncul di Atas Deskripsi Teks */}
               {ann.posterUrl && (
                 <div className="overflow-hidden rounded-xl border border-white/10 max-w-2xl bg-black/20 animate-revealUp">
                   {ann.posterUrl.toLowerCase().endsWith(".pdf") ? (
@@ -217,7 +211,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Teks Deskripsi Ditayangkan Tepat di Bawah Elemen Poster */}
               <div 
                 className="text-sm text-[#D7DCD5] whitespace-pre-wrap leading-relaxed font-body"
                 dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(ann.content) }}

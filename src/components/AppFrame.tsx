@@ -19,19 +19,16 @@ export default function AppFrame({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Redirect to login if not authenticated (except for login page)
   useEffect(() => {
     if (!loading && !user && !pathname.startsWith("/auth")) {
       router.push("/auth/login");
     }
   }, [user, loading, pathname, router]);
 
-  // Don't show header/nav on login page
   if (pathname.startsWith("/auth")) {
     return <>{children}</>;
   }
 
-  // Show loading state while checking auth
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#1b1f1d]">
@@ -40,17 +37,14 @@ export default function AppFrame({
     );
   }
 
-  // If not logged in, don't render the frame (will redirect via useEffect)
   if (!user) {
     return null;
   }
 
-  // Filter nav items berdasarkan role
   const filteredNavItems = navItems.filter((item) => {
     if (item.label === "Admin" && role !== "admin") {
       return false;
     }
-    // Profile Settings (Portal Access) sekarang dibuka untuk semua role
     return true;
   });
 
@@ -71,7 +65,6 @@ export default function AppFrame({
       <header className="sticky top-0 z-20 border-b border-[#084D58]/30 bg-[#0F282F]/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           
-          {/* Sisi Kiri: Tombol Sparkle & Judul (Aktif Global di Semua Layar) */}
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex items-center shrink-0">
               <NavWrapper items={filteredNavItems} />
@@ -87,7 +80,6 @@ export default function AppFrame({
             </div>
           </div>
           
-          {/* Sisi Kanan: Info Akun & Logout Ringkas untuk Desktop */}
           <div className="hidden sm:flex flex-col items-end gap-1 text-sm shrink-0">
             <p className="text-[#D7DCD5] font-medium">{user?.email}</p>
             <button

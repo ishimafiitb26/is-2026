@@ -36,14 +36,12 @@ export default function HamburgerNav({ items }: { items: { href: string; label: 
         <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-[#084D58]/40 bg-[#0F282F]/95 p-4 shadow-2xl z-50 backdrop-blur-md">
           
           <div className="mb-3 pb-3 border-b border-[#084D58]/50">
-            <p className="text-[10px] uppercase tracking-wider text-[#D7DCD5]/60">Sesi Utama</p>
+            <p className="text-[10px] uppercase tracking-wider text-[#D7DCD5]/60">Log In as</p>
             <p className="text-xs text-[#F2EDEC] truncate font-medium mt-0.5">{user?.email}</p>
           </div>
 
           <label className="mb-1 block text-[10px] uppercase tracking-wider text-[#D7DCD5]/60">Language</label>
           
-          {/* PERBAIKAN MUTLAK: Menambahkan translate="no" dan class "notranslate" 
-              untuk mengunci pilihan teks asli nama bahasa agar tidak diacak-acak Google */}
           <select
             value={language}
             onChange={(event) => setLanguage(event.target.value as Language)}
