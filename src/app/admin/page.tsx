@@ -289,7 +289,7 @@ export default function AdminPage() {
   };
 
   const downloadAttendanceCsv = () => {
-    const headers = ["NIM", "Nama Lengkap", "Status Kehadiran", "Detail Catatan / Kondisi Medis", "Waktu Perekaman", "Link Bukti File"];
+    const headers = ["NIM", "Nama Lengkap", "Status", "Catatan/Kondisi", "", "Link File"];
     const rows = adminAttendanceRecords.map((r) => {
       let detail = r.evidenceText || r.feedback || "-";
       
@@ -585,12 +585,12 @@ export default function AdminPage() {
           <label className="block space-y-1">
             <span className="text-xs font-bold text-teal-400">Set Hari Presensi Aktif untuk Peserta Saat Ini</span>
             <select value={activeOsjurDay} onChange={(e) => setActiveOsjurDay(e.target.value)} className="w-full rounded-xl border border-teal-500/50 bg-[#0F282F]/80 px-3 py-2 text-sm text-teal-400 font-bold outline-none cursor-pointer">
-              <option value="fase2_1">Fase 2 - Day 1: Opening & Synch</option>
-              <option value="fase2_2">Fase 2 - Day 2: Core Operations</option>
-              <option value="fase2_3">Fase 2 - Day 3: Vega: Weaving The Future</option>
-              <option value="fase2_4">Fase 2 - Day 4: Regulus: The Lion's Heart</option>
-              <option value="fase2_5">Fase 2 - Day 5: Extra Session</option>
-              <option value="fase2_6">Fase 2 - Day 6: Backup Timeline</option>
+              <option value="fase2_1">Fase 2 - Day 1</option>
+              <option value="fase2_2">Fase 2 - Day 2</option>
+              <option value="fase2_3">Fase 2 - Day 3</option>
+              <option value="fase2_4">Fase 2 - Day 4</option>
+              <option value="fase2_5">Fase 2 - Day 5</option>
+              <option value="fase2_6">Fase 2 - Day 6</option>
             </select>
           </label>
           <label className="block space-y-1">
@@ -609,36 +609,36 @@ export default function AdminPage() {
         </div>
 
         <div className="border-t border-white/10 pt-4 mt-2 space-y-3">
-          <h3 className="text-xs font-bold text-[#D5C757]">Pengaturan Gerbang Presensi Auto-Pilot (Buka & Tutup Otomatis)</h3>
+          <h3 className="text-xs font-bold text-[#D5C757]">AKSES ADMIN</h3>
           
           <div className="bg-black/20 p-4 rounded-xl border border-white/5 space-y-4">
             <label className="block space-y-1 max-w-sm">
               <span className="text-[11px] text-[#aaa391] uppercase tracking-wider">Pilih Hari Yang Ingin Diatur:</span>
               <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2.5 rounded-lg font-bold cursor-pointer outline-none focus:border-[#D5C757]">
-                <option value="fase2_1">Fase 2 - Day 1: Opening & Synch</option>
-                <option value="fase2_2">Fase 2 - Day 2: Core Operations</option>
-                <option value="fase2_3">Fase 2 - Day 3: Vega: Weaving The Future</option>
-                <option value="fase2_4">Fase 2 - Day 4: Regulus: The Lion's Heart</option>
-                <option value="fase2_5">Fase 2 - Day 5: Extra Session</option>
-                <option value="fase2_6">Fase 2 - Day 6: Backup Timeline</option>
+                <option value="fase2_1">Fase 2 - Day 1</option>
+                <option value="fase2_2">Fase 2 - Day 2</option>
+                <option value="fase2_3">Fase 2 - Day 3</option>
+                <option value="fase2_4">Fase 2 - Day 4</option>
+                <option value="fase2_5">Fase 2 - Day 5</option>
+                <option value="fase2_6">Fase 2 - Day 6</option>
               </select>
             </label>
 
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
               <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
-                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">📅 H-1 Confirmation</span>
+                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">H-1 Confirmation</span>
                 <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentH1Open} onChange={(e) => setCurrentH1Open(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
                 <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentH1Deadline} onChange={(e) => setCurrentH1Deadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
               </div>
               
               <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
-                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">🚀 Check-In Awal</span>
+                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">Check-In Awal</span>
                 <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentAwalOpen} onChange={(e) => setCurrentAwalOpen(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
                 <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentAwalDeadline} onChange={(e) => setCurrentAwalDeadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
               </div>
 
               <div className="bg-[#0F282F]/50 border border-white/10 p-3 rounded-xl space-y-3 shadow-inner">
-                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">🏁 Check-Out Akhir</span>
+                <span className="text-[#D5C757] text-[11px] font-bold uppercase tracking-wider border-b border-white/10 pb-1 block">Check-Out Akhir</span>
                 <label className="block space-y-1"><span className="text-[10px] text-teal-400 font-bold">Waktu Buka (Open)</span><input type="datetime-local" value={currentAkhirOpen} onChange={(e) => setCurrentAkhirOpen(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-teal-400" /></label>
                 <label className="block space-y-1"><span className="text-[10px] text-[#CE4A2D] font-bold">Waktu Tutup (Close)</span><input type="datetime-local" value={currentAkhirDeadline} onChange={(e) => setCurrentAkhirDeadline(e.target.value)} className="w-full bg-black/40 border border-white/10 text-white text-xs p-2 rounded-lg font-mono outline-none focus:border-[#CE4A2D]" /></label>
               </div>
@@ -651,7 +651,7 @@ export default function AdminPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
-          <h2 className="font-heading text-2xl text-[#f7f0e8]">{editingTaskId ? "✏️ Edit Mission Task" : t("Task Management")}</h2>
+          <h2 className="font-heading text-2xl text-[#f7f0e8]">{editingTaskId ? "Edit Mission Task" : t("Task Management")}</h2>
           <input value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Task Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" />
           <textarea value={newTaskDetail} onChange={(e) => setNewTaskDetail(e.target.value)} placeholder="Task Details" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" rows={3} />
           
@@ -661,7 +661,7 @@ export default function AdminPage() {
               <input value={newTaskDeadline} onChange={(e) => setNewTaskDeadline(e.target.value)} placeholder="Day 3 - 20:00" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white" />
             </label>
             <label className="block space-y-1">
-              <span className="text-[11px] text-[#CE4A2D] font-semibold">ISO Gate Close Validator</span>
+              <span className="text-[11px] text-[#CE4A2D] font-semibold">Real-time Deadline</span>
               <input type="datetime-local" value={newTaskIsoDeadline} onChange={(e) => setNewTaskIsoDeadline(e.target.value)} className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono outline-none" />
             </label>
           </div>
@@ -690,10 +690,10 @@ export default function AdminPage() {
         </article>
 
         <article className="panel p-5 space-y-3 rounded-2xl border border-[#084D58]/30">
-          <h2 className="font-heading text-2xl text-[#D5C757]">{editingHandbookId ? "✏️ Edit Handbook Title" : "📘 Handbook Upload Center"}</h2>
+          <h2 className="font-heading text-2xl text-[#D5C757]">{editingHandbookId ? "Edit Handbook" : "Handbook Upload Center"}</h2>
           <input value={newHandbookTitle} onChange={(e) => setNewHandbookTitle(e.target.value)} placeholder="Handbook Document Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white outline-none" />
           <div className="pt-2">
-            <label className="block text-xs text-[#D5C757] mb-1">📘 File Handbook (PDF/DOCX)</label>
+            <label className="block text-xs text-[#D5C757] mb-1">File Handbook (PDF/DOCX)</label>
             <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setHandbookDocFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
           </div>
           
@@ -718,7 +718,7 @@ export default function AdminPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">        
         <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
-          <h2 className="font-heading text-2xl text-white">{editingAnnId ? "✏️ Edit Broadcast" : "📢 Broadcast Feeds"}</h2>
+          <h2 className="font-heading text-2xl text-white">{editingAnnId ? "Edit Broadcast" : "Broadcast Feeds"}</h2>
           
           <div className="bg-black/30 border border-[#D5C757]/30 p-2 rounded-lg text-[10px] font-mono text-[#D5C757] space-y-0.5">
             <p className="font-bold">📋 NOTASI MARKDOWN:</p>
@@ -728,7 +728,7 @@ export default function AdminPage() {
           </div>
 
           <input value={newAnnouncementTitle} onChange={(e) => setNewAnnouncementTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white" />
-          <textarea value={newAnnouncementContent} onChange={(e) => setNewAnnouncementContent(e.target.value)} placeholder="Ketik isi body pengumuman pakai simbol di atas..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono" rows={3} />
+          <textarea value={newAnnouncementContent} onChange={(e) => setNewAnnouncementContent(e.target.value)} placeholder="Ketik pengumuman yang akan diunggah" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-xs text-white font-mono" rows={3} />
           <input type="file" accept="image/*,application/pdf" onChange={(e) => setAnnouncementPosterFile(e.target.files?.[0] || null)} className="w-full text-xs text-[#aaa391]" />
           
           <div className="flex gap-2">
@@ -752,7 +752,7 @@ export default function AdminPage() {
           )}
 
           <div className="flex gap-2 pt-2">
-            <button onClick={handleSaveAnnouncementAction} className="cta-btn w-full py-2.5 text-xs uppercase font-bold">{editingAnnId ? "Update Broadcast" : "Publish Broadcast"}</button>
+            <button onClick={handleSaveAnnouncementAction} className="cta-btn w-full py-2.5 text-xs uppercase font-bold">{editingAnnId ? "Update" : "Publish"}</button>
             {editingAnnId && <button type="button" onClick={() => { setEditingAnnId(null); setNewAnnouncementTitle(""); setNewAnnouncementContent(""); setNewAnnouncementLinks([]); }} className="nav-chip text-xs">Batal</button>}
           </div>
 
@@ -832,31 +832,35 @@ export default function AdminPage() {
       </article>
 
       <article className="panel p-5 space-y-4 rounded-2xl border border-[#084D58]/30">
-        <div className="flex justify-between items-center border-b border-white/10 pb-3 flex-wrap gap-2">
-          <h2 className="font-heading text-xl text-teal-400">📊 Live Participant Attendance Submission Viewer</h2>
-          <div className="flex gap-2 items-center">
-            <button type="button" onClick={downloadAttendanceCsv} className="nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-1.5 hover:bg-teal-700 transition">+ Export Filtered Attendance CSV</button>
-            <select value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
-              <optgroup label="FASE 2 (Aktif)">
-                <option value="fase2_1">Fase 2 - Day 1</option>
-                <option value="fase2_2">Fase 2 - Day 2</option>
-                <option value="fase2_3">Fase 2 - Day 3</option>
-                <option value="fase2_4">Fase 2 - Day 4</option>
-                <option value="fase2_5">Fase 2 - Day 5</option>
-                <option value="fase2_6">Fase 2 - Day 6</option>
-              </optgroup>
-              <optgroup label="FASE 1 (Arsip)">
-                <option value="day_1">Fase 1 - Day 1</option>
-                <option value="day_2">Fase 1 - Day 2</option>
-                <option value="day_3">Fase 1 - Day 3</option>
-                <option value="day_4">Fase 1 - Day 4</option>
-                <option value="day_5">Fase 1 - Day 5</option>
-                <option value="day_6">Fase 1 - Day 6</option>
-              </optgroup>
-            </select>
-            <select value={attendanceTabFilter} onChange={(e) => setAttendanceTabFilter(e.target.value as "awal" | "akhir" | "h1")} className="bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer">
-              <option value="awal">Check-In</option> <option value="akhir">Check-Out</option> <option value="h1">H-1 Medis</option>
-            </select>
+        <div className="flex flex-col md:flex-row justify-between md:items-center border-b border-white/10 pb-3 gap-3">
+          <h2 className="font-heading text-xl text-teal-400">Live Attendance Submission</h2>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <button type="button" onClick={downloadAttendanceCsv} className="w-full sm:w-auto nav-chip text-xs bg-teal-800 text-white font-bold px-3 py-2 sm:py-1.5 hover:bg-teal-700 transition">
+              + Export Filtered Attendance CSV
+            </button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <select value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)} className="flex-1 sm:w-auto bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer outline-none focus:border-[#D5C757]">
+                <optgroup label="FASE 2 (Aktif)">
+                  <option value="fase2_1">Fase 2 - Day 1</option>
+                  <option value="fase2_2">Fase 2 - Day 2</option>
+                  <option value="fase2_3">Fase 2 - Day 3</option>
+                  <option value="fase2_4">Fase 2 - Day 4</option>
+                  <option value="fase2_5">Fase 2 - Day 5</option>
+                  <option value="fase2_6">Fase 2 - Day 6</option>
+                </optgroup>
+                <optgroup label="FASE 1 (Arsip)">
+                  <option value="day_1">Fase 1 - Day 1</option>
+                  <option value="day_2">Fase 1 - Day 2</option>
+                  <option value="day_3">Fase 1 - Day 3</option>
+                  <option value="day_4">Fase 1 - Day 4</option>
+                  <option value="day_5">Fase 1 - Day 5</option>
+                  <option value="day_6">Fase 1 - Day 6</option>
+                </optgroup>
+              </select>
+              <select value={attendanceTabFilter} onChange={(e) => setAttendanceTabFilter(e.target.value as "awal" | "akhir" | "h1")} className="flex-1 sm:w-auto bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer outline-none focus:border-[#D5C757]">
+                <option value="awal">Check-In</option> <option value="akhir">Check-Out</option> <option value="h1">H-1</option>
+              </select>
+            </div>
           </div>
         </div>
         <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/10 text-xs text-white shadow-inner">
@@ -915,7 +919,7 @@ export default function AdminPage() {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={6} className="p-4 text-center text-[#aaa391] italic">Belum ada sirkulasi paket log absensi maba masuk pada parameter filter ini.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-center text-[#aaa391] italic">Belum ada data yang masuk.</td></tr>
               )}
             </tbody>
           </table>

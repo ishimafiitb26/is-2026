@@ -95,43 +95,7 @@ export default function Home() {
     return <div className="min-h-screen bg-[#0F282F]" />;
   }
 
-  if (showGate) {
-    return (
-      <div 
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center text-center bg-cover bg-center"
-        style={{ backgroundImage: "url('/bg/bg-1.png')" }}
-      >
-        <div className="absolute inset-0 bg-[#0F282F]/75 backdrop-blur-sm z-0" />
-        
-        <div className="relative z-10 flex flex-col items-center max-w-xl px-6 animate-revealUp">
-          <div className="text-[#D5C757] mb-4 flex items-center justify-center animate-pulse">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L15.5 8.5L22 12L15.5 15.5L12 22L8.5 15.5L2 12L8.5 8.5L12 2Z" fill="currentColor"/>
-            </svg>
-          </div>
-          
-          <h1 className="font-heading text-4xl sm:text-6xl text-[#F2EDEC] tracking-widest mb-1 drop-shadow-lg">
-            INTELLEKTUELLE SCHULE 2026
-          </h1>
-          
-          <p className="text-[#D7DCD5] tracking-widest text-xs sm:text-sm uppercase mb-10">
-            New Beginning of Comprehensible Universe
-          </p>
-          
-          <button 
-            type="button"
-            onClick={() => {
-              sessionStorage.setItem("gateDismissed", "true");
-              setShowGate(false);
-            }} 
-            className="cta-btn px-10 py-3.5 text-xs sm:text-sm tracking-wider uppercase cursor-pointer transition shadow-2xl"
-          >
-            Initiate Voyage
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // GATE SEMENTARA DIHAPUS
 
   return (
     <div className="space-y-6">
