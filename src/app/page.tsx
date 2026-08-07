@@ -151,9 +151,6 @@ export default function Home() {
               <Link href="/handbook" className="cta-btn px-6 py-3 text-sm bg-teal-800 border-teal-700 hover:bg-teal-700 transition">
                 {t("Explore Area")}
               </Link>
-              <Link href="/help-center" className="nav-chip px-6 py-3 text-sm">
-                {t("Browse Help Center")}
-              </Link>
             </>
           ) : (
             <Link href="/auth/login" className="cta-btn px-8 py-3 text-sm">

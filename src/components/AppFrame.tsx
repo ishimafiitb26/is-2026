@@ -75,7 +75,7 @@ export default function AppFrame({
                 INTELLEKTUELLE SCHULE 2026
               </Link>
               <p className="text-[10px] sm:text-sm text-[#D7DCD5]" suppressHydrationWarning>
-                Project Hail Mary Operations
+                IS HIMAFI ITB 2026
               </p>
             </div>
           </div>
