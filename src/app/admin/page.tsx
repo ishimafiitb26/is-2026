@@ -587,7 +587,7 @@ export default function AdminPage() {
             <select value={activeOsjurDay} onChange={(e) => setActiveOsjurDay(e.target.value)} className="w-full rounded-xl border border-teal-500/50 bg-[#0F282F]/80 px-3 py-2 text-sm text-teal-400 font-bold outline-none cursor-pointer">
               <option value="fase2_1">Fase 2 - Day 1</option>
               <option value="fase2_2">Fase 2 - Day 2</option>
-              <option value="fase2_3">Fase 2 - Day 3</option>
+              <option value="fase3_5">Fase 3 - Day 5</option>
               <option value="fase2_4">Fase 2 - Day 4</option>
               <option value="fase2_5">Fase 2 - Day 5</option>
               <option value="fase2_6">Fase 2 - Day 6</option>
@@ -617,7 +617,7 @@ export default function AdminPage() {
               <select value={targetDeadlineDay} onChange={(e) => setTargetDeadlineDay(e.target.value)} className="w-full bg-[#0F282F] border border-white/10 text-white text-xs p-2.5 rounded-lg font-bold cursor-pointer outline-none focus:border-[#D5C757]">
                 <option value="fase2_1">Fase 2 - Day 1</option>
                 <option value="fase2_2">Fase 2 - Day 2</option>
-                <option value="fase2_3">Fase 2 - Day 3</option>
+                <option value="fase3_5">Fase 3 - Day 5</option>
                 <option value="fase2_4">Fase 2 - Day 4</option>
                 <option value="fase2_5">Fase 2 - Day 5</option>
                 <option value="fase2_6">Fase 2 - Day 6</option>
@@ -840,10 +840,10 @@ export default function AdminPage() {
             </button>
             <div className="flex gap-2 w-full sm:w-auto">
               <select value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)} className="flex-1 sm:w-auto bg-[#0F282F] text-xs text-white p-2 rounded-lg border border-white/10 cursor-pointer outline-none focus:border-[#D5C757]">
-                <optgroup label="FASE 2 (Aktif)">
+                <optgroup label="FASE 2 & 3 (Aktif)">
                   <option value="fase2_1">Fase 2 - Day 1</option>
                   <option value="fase2_2">Fase 2 - Day 2</option>
-                  <option value="fase2_3">Fase 2 - Day 3</option>
+                  <option value="fase3_5">Fase 3 - Day 5</option>
                   <option value="fase2_4">Fase 2 - Day 4</option>
                   <option value="fase2_5">Fase 2 - Day 5</option>
                   <option value="fase2_6">Fase 2 - Day 6</option>

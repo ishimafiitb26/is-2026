@@ -11,7 +11,7 @@ import { eventMetaRef, getCurrentTimestamp } from "@/lib/engagement";
 const osjurDays = [
   { value: "fase2_1", label: "Fase 2 - Day 1: Opening & Synchronizations" },
   { value: "fase2_2", label: "Fase 2 - Day 2: Rigel: Potential of The Stars" },
-  { value: "fase2_3", label: "Fase 2 - Day 3: Vega: Weaving The Future" },
+  { value: "fase3_5", label: "Fase 3 - Day 5" },
   { value: "fase2_4", label: "Fase 2 - Day 4: Regulus: The Lion's Heart" },
   { value: "fase2_5", label: "Fase 2 - Day 5: Extra Operations Grid" },
   { value: "fase2_6", label: "Fase 2 - Day 6: Evaluation & Horizon" },
