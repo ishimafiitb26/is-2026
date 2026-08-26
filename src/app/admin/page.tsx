@@ -221,9 +221,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (role !== "admin") return;
     
-    const isFase2 = attendanceDayFilter.startsWith("fase2_");
+    // PERBAIKAN: Beri tahu Admin bahwa "fase3_" juga datanya disimpan di prefix "fase2_" 
+    // karena dari awal kodingan attendance sudah hardcode menggunakan prefix tersebut.
+    const isAktif = attendanceDayFilter.startsWith("fase2_") || attendanceDayFilter.startsWith("fase3_");
     const targetDayNumber = attendanceDayFilter.split("_").pop();
-    const prefix = isFase2 ? "fase2_" : "";
+    const prefix = isAktif ? "fase2_" : "";
 
     let collectionName = `${prefix}attendance_day_${targetDayNumber}`;
     if (attendanceTabFilter === "akhir") collectionName = `${prefix}attendance_akhir_day_${targetDayNumber}`;
