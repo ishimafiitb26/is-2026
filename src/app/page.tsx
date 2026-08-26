@@ -1,170 +1,195 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { onSnapshot, query, orderBy } from "firebase/firestore";
 import { useI18n } from "@/components/I18nProvider";
 import { useAuth } from "@/components/AuthProvider";
-import { db } from "@/lib/firebase";
-import { getCurrentTimestamp } from "@/lib/engagement";
+import { eventMetaRef, announcementsCollectionRef, type Announcement } from "@/lib/engagement";
 
-export default function PortalPage() {
+interface AnnouncementStructure {
+  id: string;
+  title: string;
+  content: string;
+  posterUrl?: string;
+  links?: Array<{ label: string; url: string }>;
+}
+function parseMarkdownToHtml(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/\*(.*?)\*/g, "<b>$1</b>")
+    .replace(/_(.*?)_/g, "<i>$1</i>")
+    .replace(/~(.*?)~/g, "<u>$1</u>");
+}
+
+export default function Home() {
   const { t } = useI18n();
-  const { role, loading, user } = useAuth();
+  const { user } = useAuth();
   
-  const [name, setName] = useState<string>("");
-  const [nickname, setNickname] = useState<string>("");
-  const [biodata, setBiodata] = useState<string>("");
-
-  const [oldPassword, setOldPassword] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string>("");
-
-  const [profileMessage, setProfileMessage] = useState<string>("");
-  const [passwordMessage, setPasswordMessage] = useState<string>("");
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState<boolean>(false);
-  const studentNIM = user?.email ? user.email.split("@")[0] : "UNKNOWN";
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  
+  const [briefing, setBriefing] = useState<string>("");
+  const [countdown, setCountdown] = useState<string>("");
+  const [schedule, setSchedule] = useState<string>("");
+  const [feedAnnouncements, setFeedAnnouncements] = useState<AnnouncementStructure[]>([]);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    const timer = setTimeout(() => {
+      setIsHydrated(true);
+    }, 0);
 
-    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+    const safeErrorHandler = (error: Error) => {
+      console.debug(error.message);
+    };
+
+    const unsubscribeMeta = onSnapshot(eventMetaRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setName(data.name || "");
-        setNickname(data.nickname || "");
-        setBiodata(data.biodata || "");
+        setBriefing(data.latestBriefing || "");
+        setCountdown(data.countdownText || "");
+        setSchedule(data.todaySchedule || "");
       }
-    }, (error) => {
-      console.debug(error.message);
-    });
+    }, safeErrorHandler);
 
-    return () => unsubscribe();
-  }, [user]);
+    const unsubscribeAnnouncements = onSnapshot(
+      query(announcementsCollectionRef, orderBy("createdAt", "desc")),
+      (snapshot) => {
+        setFeedAnnouncements(
+          snapshot.docs.map((docItem) => {
+            const data = docItem.data();
+            return {
+              id: docItem.id,
+              title: data.title || "",
+              content: data.content || "",
+              posterUrl: data.posterUrl,
+              links: data.links,
+            };
+          })
+        );
+      },
+      safeErrorHandler
+    );
 
-  const handleUpdateProfile = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user?.uid) return;
+    return () => {
+      clearTimeout(timer);
+      unsubscribeMeta();
+      unsubscribeAnnouncements();
+    };
+  }, []);
 
-    setIsUpdatingProfile(true);
-    setProfileMessage("");
+  const visibleCardsCount = useMemo(() => {
+    return [
+      briefing && briefing.trim() !== "",
+      countdown && countdown.trim() !== "",
+      schedule && schedule.trim() !== ""
+    ].filter(Boolean).length;
+  }, [briefing, countdown, schedule]);
 
-    try {
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email || "",
-        name: name.trim(),
-        nickname: nickname.trim(),
-        biodata: biodata.trim(),
-        updatedAt: getCurrentTimestamp(),
-      }, { merge: true });
-
-      setProfileMessage("Data informasi profil berhasil disimpan ke sistem.");
-    } catch (err: unknown) {
-      const failMessage = err instanceof Error ? err.message : "Database pipeline error.";
-      setProfileMessage(`Gagal menyimpan profil: ${failMessage}`);
-    } finally {
-      setIsUpdatingProfile(false);
-    }
-  };
-
-  const handleUpdatePassword = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!user?.email) return;
-
-    if (!oldPassword.trim() || !newPassword.trim()) {
-      setPasswordMessage("Seluruh kolom verifikasi kata sandi wajib diisi.");
-      return;
-    }
-
-    if (newPassword.trim().length < 6) {
-      setPasswordMessage("Kata sandi baru minimal harus terdiri dari 6 karakter.");
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    setPasswordMessage("");
-
-    try {
-      const credential = EmailAuthProvider.credential(user.email, oldPassword.trim());
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, newPassword.trim());
-
-      setPasswordMessage("Kata sandi akses Anda berhasil diperbarui.");
-      setOldPassword("");
-      setNewPassword("");
-    } catch (err: unknown) {
-      const failMessage = err instanceof Error ? err.message : "Authentication network failure.";
-      if (failMessage.includes("wrong-password")) {
-        setPasswordMessage("Ganti password gagal: Kata sandi lama yang Anda masukkan salah.");
-      } else {
-        setPasswordMessage(`Ganti password gagal: ${failMessage}`);
-      }
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
-
-  if (loading) return <div className="text-center py-8 text-[#E1D9F9]/50">{t("Loading...")}</div>;
+  if (!isHydrated) {
+    return <div className="min-h-screen bg-[#0A0A0B]" />;
+  }
 
   return (
-    <section className="space-y-6">
-      <header className="panel p-6">
-        <p className="status-pill">{role === "admin" ? "Admin Mode" : "Peserta Mode"}</p>
-        <h1 className="mt-2 font-heading text-4xl text-[#E1D9F9] tracking-wider">{t("Profile Settings")}</h1>
-      </header>
+    <div className="space-y-6">
+      <section className="panel p-6 sm:p-8">
+        <h1 className="mt-4 font-heading text-5xl leading-none tracking-wider text-[#E1D9F9] sm:text-6xl">
+          Welcome Astravara!
+        </h1>
+        <p className="mt-4 max-w-2xl text-base text-[#E1D9F9]/80 sm:text-lg">
+          Tidak ada jalan menuju bintang selain melalui masalah yang harus dipecahkan.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {user ? (
+            <>
+              <Link href="/attendance" className="cta-btn px-6 py-3 text-sm">
+                {t("Attendance")}
+              </Link>
+              <Link href="/handbook" className="cta-btn px-6 py-3 text-sm bg-[#452ABC] border-[#452ABC] hover:bg-[#452ABC]/80 transition">
+                {t("Explore Area")}
+              </Link>
+            </>
+          ) : (
+            <Link href="/auth/login" className="cta-btn px-8 py-3 text-sm">
+              {t("Login")}
+            </Link>
+          )}
+        </div>
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-2 items-start">
-        <article className="panel p-6 space-y-4">
-          <h2 className="font-heading text-2xl text-[#F6C545] tracking-wide">Identity Information</h2>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 mb-1">Username / NIM</label>
-              <input type="text" value={studentNIM} disabled className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[#E1D9F9] opacity-40 text-sm font-mono font-bold outline-none" />
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 mb-1">Full Identity Name</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama Lengkap" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#E1D9F9] text-sm outline-none focus:border-[#F6C545] transition" required />
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 mb-1">Nickname</label>
-              <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Nama Panggilan" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#E1D9F9] text-sm outline-none focus:border-[#F6C545] transition" required />
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 mb-1">Personal Bio</label>
-              <textarea value={biodata} onChange={(e) => setBiodata(e.target.value)} placeholder="Tulis bio jika perlu" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2 text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] transition" rows={3} required />
-            </div>
-            
-            {profileMessage && <p className="text-xs font-mono text-[#F6C545] bg-black/10 p-2 rounded-lg border border-white/5">{profileMessage}</p>}
-            
-            <button type="submit" disabled={isUpdatingProfile} className="cta-btn w-full py-2.5 text-xs uppercase tracking-wider">
-              {isUpdatingProfile ? "Syncing Identity..." : "Save Identity Changes"}
-            </button>
-          </form>
-        </article>
+      {visibleCardsCount > 0 && (
+        <section className={`grid gap-3 ${visibleCardsCount === 3 ? "sm:grid-cols-3" : visibleCardsCount === 2 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+          {briefing && briefing.trim() !== "" && (
+            <article className="panel p-4 animate-revealUp">
+              <p className="text-xs uppercase tracking-[0.08em] text-[#E1D9F9]/50">{t("Latest Briefing")}</p>
+              <h2 className="mt-1 text-sm font-semibold text-[#E1D9F9] whitespace-pre-wrap">{briefing}</h2>
+            </article>
+          )}
+          {countdown && countdown.trim() !== "" && (
+            <article className="panel p-4 animate-revealUp">
+              <p className="text-xs uppercase tracking-[0.08em] text-[#E1D9F9]/50">{t("Countdown")}</p>
+              <h2 className="mt-1 text-xl font-semibold text-[#E1D9F9]">{countdown}</h2>
+            </article>
+          )}
+          {schedule && schedule.trim() !== "" && (
+            <article className="panel p-4 animate-revealUp">
+              <p className="text-xs uppercase tracking-[0.08em] text-[#E1D9F9]/50">{t("Today Schedule")}</p>
+              <h2 className="mt-1 text-sm font-semibold text-[#E1D9F9] whitespace-pre-wrap">{schedule}</h2>
+            </article>
+          )}
+        </section>
+      )}
 
-        <article className="panel p-6 space-y-4">
-          <h2 className="font-heading text-2xl text-[#EC5C2A] tracking-wide">Security & Password</h2>
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <p className="text-xs text-[#E1D9F9]/50 leading-relaxed">
-              Masukkan kata sandi lama sebelum membuat kata sandi baru.
-            </p>
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-[#EC5C2A] mb-1 font-semibold">Current Password (Kata Sandi Lama)</label>
-              <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="••••••••" className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#E1D9F9] text-sm outline-none focus:border-[#EC5C2A] transition" required />
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-[#F6C545] mb-1 font-semibold">New Operational Password (Kata Sandi Baru)</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimal 6 karakter baru..." className="w-full bg-black/20 border border-white/15 rounded-xl px-3 py-2.5 text-[#E1D9F9] text-sm outline-none focus:border-[#F6C545] transition" required />
-            </div>
+      <section className="space-y-4">
+        <h2 className="font-heading text-2xl text-[#F6C545] tracking-wider">{t("Broadcast")}</h2>
+        {feedAnnouncements.length > 0 ? (
+          feedAnnouncements.map((ann) => (
+            <article key={ann.id} className="panel p-5 space-y-4 border border-white/5 bg-black/5">
+              <h3 className="text-xl font-bold text-[#E1D9F9] border-b border-white/5 pb-1">{ann.title}</h3>
+              
+              {ann.posterUrl && (
+                <div className="overflow-hidden rounded-xl border border-white/10 max-w-2xl bg-black/20 animate-revealUp">
+                  {ann.posterUrl.toLowerCase().endsWith(".pdf") ? (
+                    <iframe 
+                      src={`${ann.posterUrl}#toolbar=0`} 
+                      className="w-full h-[350px] border-0 select-none"
+                      title={`Poster ${ann.title}`}
+                    />
+                  ) : (
+                    <img 
+                      src={ann.posterUrl} 
+                      alt={`Poster ${ann.title}`} 
+                      className="w-full h-auto object-contain max-h-[450px]"
+                    />
+                  )}
+                </div>
+              )}
 
-            {passwordMessage && <p className="text-xs font-mono text-[#F6C545] bg-black/10 p-2.5 rounded-lg border border-white/5">{passwordMessage}</p>}
+              <div 
+                className="text-sm text-[#E1D9F9]/80 whitespace-pre-wrap leading-relaxed font-body"
+                dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(ann.content) }}
+              />
 
-            <button type="submit" disabled={isUpdatingPassword} className="w-full py-2.5 bg-[#EC5C2A] hover:bg-[#c44a20] disabled:opacity-40 text-[#E1D9F9] font-bold text-xs uppercase tracking-wider rounded-xl transition shadow-lg">
-              {isUpdatingPassword ? "Encrypting Key..." : "Save New Password"}
-            </button>
-          </form>
-        </article>
-      </div>
-    </section>
+              {ann.links && ann.links.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                  {ann.links.map((link, lIdx) => (
+                    <a 
+                      key={lIdx} 
+                      href={link.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="status-pill text-[11px] text-[#F6C545] border-[#F6C545]/30 hover:bg-[#F6C545]/10 transition"
+                    >
+                      🔗 {link.label || "Link"}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </article>
+          ))
+        ) : (
+          <p className="text-xs text-[#E1D9F9]/50 italic p-2">No active encryption packets broadcasted currently.</p>
+        )}
+      </section>
+    </div>
   );
 }
