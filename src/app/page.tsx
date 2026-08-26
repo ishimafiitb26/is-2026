@@ -26,7 +26,6 @@ export default function Home() {
   const { t } = useI18n();
   const { user } = useAuth();
   
-  const [showGate, setShowGate] = useState<boolean>(true);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   
   const [briefing, setBriefing] = useState<string>("");
@@ -35,17 +34,12 @@ export default function Home() {
   const [feedAnnouncements, setFeedAnnouncements] = useState<AnnouncementStructure[]>([]);
 
   useEffect(() => {
-    const gateDismissed = sessionStorage.getItem("gateDismissed");
-    
     const timer = setTimeout(() => {
-      if (gateDismissed === "true") {
-        setShowGate(false);
-      }
       setIsHydrated(true);
     }, 0);
 
     const safeErrorHandler = (error: Error) => {
-      console.debug("Background integration system bypass check:", error.message);
+      console.debug(error.message);
     };
 
     const unsubscribeMeta = onSnapshot(eventMetaRef, (docSnap) => {
@@ -92,18 +86,16 @@ export default function Home() {
   }, [briefing, countdown, schedule]);
 
   if (!isHydrated) {
-    return <div className="min-h-screen bg-[#0F282F]" />;
+    return <div className="min-h-screen bg-[#0A0A0B]" />;
   }
-
-  // GATE SEMENTARA DIHAPUS
 
   return (
     <div className="space-y-6">
       <section className="panel p-6 sm:p-8">
-        <h1 className="mt-4 font-heading text-5xl leading-none tracking-wider text-[#f2f1ec] sm:text-6xl">
+        <h1 className="mt-4 font-heading text-5xl leading-none tracking-wider text-[#E1D9F9] sm:text-6xl">
           Welcome Astravara!
         </h1>
-        <p className="mt-4 max-w-2xl text-base text-[#e2ded2] sm:text-lg">
+        <p className="mt-4 max-w-2xl text-base text-[#E1D9F9]/80 sm:text-lg">
           Tidak ada jalan menuju bintang selain melalui masalah yang harus dipecahkan.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -112,7 +104,7 @@ export default function Home() {
               <Link href="/attendance" className="cta-btn px-6 py-3 text-sm">
                 {t("Attendance")}
               </Link>
-              <Link href="/handbook" className="cta-btn px-6 py-3 text-sm bg-teal-800 border-teal-700 hover:bg-teal-700 transition">
+              <Link href="/handbook" className="cta-btn px-6 py-3 text-sm bg-[#452ABC] border-[#452ABC] hover:bg-[#452ABC]/80 transition">
                 {t("Explore Area")}
               </Link>
             </>
@@ -128,31 +120,31 @@ export default function Home() {
         <section className={`grid gap-3 ${visibleCardsCount === 3 ? "sm:grid-cols-3" : visibleCardsCount === 2 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
           {briefing && briefing.trim() !== "" && (
             <article className="panel p-4 animate-revealUp">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#c7c3b8]">{t("Latest Briefing")}</p>
-              <h2 className="mt-1 text-sm font-semibold text-[#f2f1ec] whitespace-pre-wrap">{briefing}</h2>
+              <p className="text-xs uppercase tracking-[0.08em] text-[#E1D9F9]/50">{t("Latest Briefing")}</p>
+              <h2 className="mt-1 text-sm font-semibold text-[#E1D9F9] whitespace-pre-wrap">{briefing}</h2>
             </article>
           )}
           {countdown && countdown.trim() !== "" && (
             <article className="panel p-4 animate-revealUp">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#c7c3b8]">{t("Countdown")}</p>
-              <h2 className="mt-1 text-xl font-semibold text-[#f2f1ec]">{countdown}</h2>
+              <p className="text-xs uppercase tracking-[0.08em] text-[#E1D9F9]/50">{t("Countdown")}</p>
+              <h2 className="mt-1 text-xl font-semibold text-[#E1D9F9]">{countdown}</h2>
             </article>
           )}
           {schedule && schedule.trim() !== "" && (
             <article className="panel p-4 animate-revealUp">
-              <p className="text-xs uppercase tracking-[0.08em] text-[#c7c3b8]">{t("Today Schedule")}</p>
-              <h2 className="mt-1 text-sm font-semibold text-[#f2f1ec] whitespace-pre-wrap">{schedule}</h2>
+              <p className="text-xs uppercase tracking-[0.08em] text-[#E1D9F9]/50">{t("Today Schedule")}</p>
+              <h2 className="mt-1 text-sm font-semibold text-[#E1D9F9] whitespace-pre-wrap">{schedule}</h2>
             </article>
           )}
         </section>
       )}
 
       <section className="space-y-4">
-        <h2 className="font-heading text-2xl text-[#D5C757] tracking-wider">{t("Broadcast")}</h2>
+        <h2 className="font-heading text-2xl text-[#F6C545] tracking-wider">{t("Broadcast")}</h2>
         {feedAnnouncements.length > 0 ? (
           feedAnnouncements.map((ann) => (
             <article key={ann.id} className="panel p-5 space-y-4 border border-white/5 bg-black/5">
-              <h3 className="text-xl font-bold text-[#F2EDEC] border-b border-white/5 pb-1">{ann.title}</h3>
+              <h3 className="text-xl font-bold text-[#E1D9F9] border-b border-white/5 pb-1">{ann.title}</h3>
               
               {ann.posterUrl && (
                 <div className="overflow-hidden rounded-xl border border-white/10 max-w-2xl bg-black/20 animate-revealUp">
@@ -173,7 +165,7 @@ export default function Home() {
               )}
 
               <div 
-                className="text-sm text-[#D7DCD5] whitespace-pre-wrap leading-relaxed font-body"
+                className="text-sm text-[#E1D9F9]/80 whitespace-pre-wrap leading-relaxed font-body"
                 dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(ann.content) }}
               />
 
@@ -185,7 +177,7 @@ export default function Home() {
                       href={link.url} 
                       target="_blank" 
                       rel="noopener noreferrer" 
-                      className="status-pill text-[11px] text-[#D5C757] border-[#D5C757]/30 hover:bg-[#D5C757]/10 transition"
+                      className="status-pill text-[11px] text-[#F6C545] border-[#F6C545]/30 hover:bg-[#F6C545]/10 transition"
                     >
                       🔗 {link.label || "Link"}
                     </a>
@@ -195,7 +187,7 @@ export default function Home() {
             </article>
           ))
         ) : (
-          <p className="text-xs text-[#aaa391] italic p-2">No active encryption packets broadcasted currently.</p>
+          <p className="text-xs text-[#E1D9F9]/50 italic p-2">No active encryption packets broadcasted currently.</p>
         )}
       </section>
     </div>

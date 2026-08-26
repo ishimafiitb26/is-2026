@@ -11,10 +11,10 @@ export default function LanguageSelector() {
       <select
         value={language}
         onChange={(e) => setLanguage(e.target.value as Language)}
-        className="cursor-pointer rounded-xl border border-[#084D58]/60 bg-[#0F282F]/90 px-3 py-1.5 text-xs font-semibold text-[#F2EDEC] outline-none hover:border-[#D5C757] transition duration-300 shadow-md backdrop-blur-sm"
+        className="cursor-pointer rounded-xl border border-[#452ABC]/60 bg-[#0A0A0B]/90 px-3 py-1.5 text-xs font-semibold text-[#E1D9F9] outline-none hover:border-[#F6C545] transition duration-300 shadow-md backdrop-blur-sm"
       >
         {languages.map((lang) => (
-          <option key={lang} value={lang} className="bg-[#0F282F] text-[#F2EDEC]">
+          <option key={lang} value={lang} className="bg-[#0A0A0B] text-[#E1D9F9]">
             🌐 {languageLabels[lang]}
           </option>
         ))}

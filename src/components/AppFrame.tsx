@@ -31,8 +31,8 @@ export default function AppFrame({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#1b1f1d]">
-        <p className="text-[#c8b0a0]">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B]">
+        <p className="text-[#E1D9F9]/60">Loading...</p>
       </div>
     );
   }
@@ -56,13 +56,13 @@ export default function AppFrame({
   return (
     <>
       <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(8,77,88,0.3),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(213,199,87,0.1),_transparent_28%),linear-gradient(140deg,_#0F282F_0%,_#0a1b20_50%,_#050d10_100%)]" />
-        <div className="absolute left-[-8%] top-[-10%] h-72 w-72 rounded-full bg-[#084D58]/30 blur-3xl" />
-        <div className="absolute right-[-6%] top-[18%] h-80 w-80 rounded-full bg-[#CE4A2D]/15 blur-3xl" />
-        <div className="absolute bottom-[-10%] left-[22%] h-96 w-96 rounded-full bg-[#D5C757]/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(246,197,69,0.10),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(236,92,42,0.16),_transparent_45%),linear-gradient(140deg,_#0A0A0B_0%,_#0c0a10_50%,_#060507_100%)]" />
+        <div className="absolute left-[-8%] top-[-10%] h-72 w-72 rounded-full bg-[#F6C545]/10 blur-3xl" />
+        <div className="absolute right-[-6%] top-[18%] h-80 w-80 rounded-full bg-[#EC5C2A]/16 blur-3xl" />
+        <div className="absolute bottom-[-10%] left-[22%] h-96 w-96 rounded-full bg-[#452ABC]/14 blur-3xl" />
       </div>
      
-      <header className="sticky top-0 z-20 border-b border-[#084D58]/30 bg-[#0F282F]/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-[#E1D9F9]/[0.08] bg-[#0A0A0B]/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           
           <div className="flex items-center gap-4 min-w-0">
@@ -71,20 +71,20 @@ export default function AppFrame({
             </div>
 
             <div className="flex flex-col gap-1 min-w-0">
-              <Link href="/" className="font-heading text-xl sm:text-4xl leading-none tracking-[0.08em] text-[#F2EDEC] truncate">
+              <Link href="/" className="font-heading text-xl sm:text-4xl leading-none tracking-[0.08em] text-[#F6C545] truncate">
                 INTELLEKTUELLE SCHULE 2026
               </Link>
-              <p className="text-[10px] sm:text-sm text-[#D7DCD5]" suppressHydrationWarning>
+              <p className="text-[10px] sm:text-sm text-[#E1D9F9]/50" suppressHydrationWarning>
                 IS HIMAFI ITB 2026
               </p>
             </div>
           </div>
           
           <div className="hidden sm:flex flex-col items-end gap-1 text-sm shrink-0">
-            <p className="text-[#D7DCD5] font-medium">{user?.email}</p>
+            <p className="text-[#E1D9F9] font-medium">{user?.email}</p>
             <button
               onClick={handleLogout}
-              className="px-3 py-1 bg-[#D5C757] hover:bg-[#e8da6f] text-[#0F282F] rounded text-xs font-bold transition shadow-sm"
+              className="px-3 py-1 bg-[#F6C545] hover:bg-[#EC5C2A] text-[#0A0A0B] rounded text-xs font-bold transition shadow-sm"
             >
               Logout
             </button>

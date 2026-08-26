@@ -115,7 +115,7 @@ export default function AttendancePage() {
     const targetDayNumber = selectedDay.split("_")[1];
 
     const silentErrorHandler = (err: Error) => {
-      console.debug("Firebase alignment bypassed:", err.message);
+      console.debug(err.message);
     };
 
     const unsubAwal = onSnapshot(collection(db, `fase2_attendance_day_${targetDayNumber}`), (snap) => {
@@ -343,46 +343,46 @@ export default function AttendancePage() {
     const isError = saveMessage.startsWith("❌");
     
     return (
-      <div className={`p-4 mb-4 rounded-xl border font-bold text-[11px] sm:text-xs tracking-wider animate-revealDown ${isSuccess ? 'bg-teal-900/40 border-teal-500 text-teal-400' : isError ? 'bg-[#CE4A2D]/20 border-[#CE4A2D] text-[#CE4A2D]' : 'bg-white/10 border-white/20 text-[#D5C757]'}`}>
+      <div className={`p-4 mb-4 rounded-xl border font-bold text-[11px] sm:text-xs tracking-wider animate-revealDown ${isSuccess ? 'bg-[#452ABC]/25 border-[#452ABC] text-[#E1D9F9]' : isError ? 'bg-[#EC5C2A]/20 border-[#EC5C2A] text-[#EC5C2A]' : 'bg-white/10 border-white/20 text-[#F6C545]'}`}>
         {saveMessage}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#0F282F] p-4 sm:p-6 lg:p-8 text-[#F2EDEC] relative overflow-x-hidden selection:bg-[#D5C757]/30 w-full max-w-full">
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#084D58]/10 blur-[120px] pointer-events-none z-0 hidden sm:block" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#D5C757]/5 blur-[100px] pointer-events-none z-0 hidden sm:block" />
+    <div className="min-h-screen bg-[#0A0A0B] p-4 sm:p-6 lg:p-8 text-[#E1D9F9] relative overflow-x-hidden selection:bg-[#F6C545]/30 w-full max-w-full">
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#452ABC]/10 blur-[120px] pointer-events-none z-0 hidden sm:block" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#F6C545]/5 blur-[100px] pointer-events-none z-0 hidden sm:block" />
 
       <div className="max-w-7xl mx-auto space-y-6 relative z-10 w-full min-w-0">
         
-        <header className="panel rounded-3xl border border-[#084D58]/40 bg-[#0F282F]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6 w-full min-w-0">
+        <header className="panel rounded-3xl border border-[#452ABC]/40 bg-[#0A0A0B]/80 p-5 sm:p-8 shadow-2xl backdrop-blur-md flex flex-col md:flex-row justify-between items-start md:items-center gap-6 w-full min-w-0">
           <div className="space-y-2 w-full max-w-xl">
-            <h1 className="font-heading text-3xl sm:text-5xl tracking-wider text-[#F2EDEC] leading-tight break-words whitespace-normal">
+            <h1 className="font-heading text-3xl sm:text-5xl tracking-wider text-[#E1D9F9] leading-tight break-words whitespace-normal">
               {t("ATTENDANCE PAGE")}
             </h1>
-            <p className="text-[11px] sm:text-xs text-[#aaa391] leading-relaxed break-words whitespace-normal">
+            <p className="text-[11px] sm:text-xs text-[#E1D9F9]/50 leading-relaxed break-words whitespace-normal">
               Pastikan identitas dan konfirmasi kehadiran terisi sebelum presensi ditutup.
             </p>
           </div>
 
           <div className="w-full md:w-72 space-y-1.5 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner shrink-0 min-w-0">
-            <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-bold">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#D5C757] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
+            <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-bold">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-[#F6C545] shrink-0"><path d="M19 4H5C3.89 4 3 4.89 3 6V20C3 21.11 3.89 22 5 22H19C20.11 22 21 21.11 21 20V6C21 4.89 20.11 4H19ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z" fill="currentColor"/></svg>
               DAY:
             </label>
-            <div key={selectedDay} className="w-full rounded-xl border border-[#084D58]/60 bg-[#084D58]/30 px-3 py-2.5 text-xs font-semibold text-[#D5C757] truncate shadow-inner select-none">
+            <div key={selectedDay} className="w-full rounded-xl border border-[#452ABC]/60 bg-[#452ABC]/30 px-3 py-2.5 text-xs font-semibold text-[#F6C545] truncate shadow-inner select-none">
               {osjurDays.find((day) => day.value === selectedDay)?.label || "Loading Timeline..."}
             </div>
           </div>
         </header>
 
-        <nav className="flex flex-nowrap border-b border-[#084D58]/40 bg-[#0F282F]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
+        <nav className="flex flex-nowrap border-b border-[#452ABC]/40 bg-[#0A0A0B]/40 p-1.5 sm:p-2 rounded-2xl gap-2 overflow-x-auto shadow-inner backdrop-blur-sm w-full min-w-0 scrollbar-hide pb-2 sm:pb-2">
           
           <button
             type="button"
             onClick={() => { setActiveTab("h1"); setSaveMessage(""); }}
-            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "h1" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "h1" ? "bg-gradient-to-r from-[#F6C545] to-[#EC5C2A] text-[#0A0A0B] shadow-[0_0_15px_rgba(246,197,69,0.4)] border border-[#F6C545] scale-[1.02] z-10" : "bg-black/20 text-[#E1D9F9]/50 border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M9 11H7V13H9V11ZM13 11H11V13H13V11ZM17 11H15V13H17V11ZM19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6V20C3.01 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4H19ZM19 20H5V9H19V20Z" fill="currentColor"/></svg>
             H-1 Confirmation
@@ -391,7 +391,7 @@ export default function AttendancePage() {
           <button
             type="button"
             onClick={() => { setActiveTab("dday_awal"); setSaveMessage(""); }}
-            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_awal" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_awal" ? "bg-gradient-to-r from-[#F6C545] to-[#EC5C2A] text-[#0A0A0B] shadow-[0_0_15px_rgba(246,197,69,0.4)] border border-[#F6C545] scale-[1.02] z-10" : "bg-black/20 text-[#E1D9F9]/50 border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M12 2L2 22H22L12 2ZM12 6L18.8 19.5H5.2L12 6ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
             Check-In (Presensi Awal)
@@ -400,7 +400,7 @@ export default function AttendancePage() {
           <button
             type="button"
             onClick={() => { setActiveTab("dday_akhir"); setSaveMessage(""); }}
-            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_akhir" ? "bg-gradient-to-r from-[#D5C757] to-[#b3a647] text-[#0F282F] shadow-[0_0_15px_rgba(213,199,87,0.4)] border border-[#D5C757] scale-[1.02] z-10" : "bg-black/20 text-[#aaa391] border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
+            className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-300 ${activeTab === "dday_akhir" ? "bg-gradient-to-r from-[#F6C545] to-[#EC5C2A] text-[#0A0A0B] shadow-[0_0_15px_rgba(246,197,69,0.4)] border border-[#F6C545] scale-[1.02] z-10" : "bg-black/20 text-[#E1D9F9]/50 border border-white/5 hover:bg-white/10 opacity-70 hover:opacity-100"}`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M14.5 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V7.5L14.5 2ZM18 20H6V4H13.5V8.5H18V20ZM11 11H13V15H11V11ZM11 16H13V18H11V16Z" fill="currentColor"/></svg>
             Check-Out (Presensi Akhir)
@@ -408,20 +408,20 @@ export default function AttendancePage() {
         </nav>
 
         {gateInfo.status !== "OPEN" && (
-          <div className={`col-span-full panel rounded-2xl border p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0 ${gateInfo.status === "PENDING" ? 'border-[#D5C757]/50 bg-[#D5C757]/10' : 'border-[#CE4A2D]/50 bg-[#CE4A2D]/10'}`}>
+          <div className={`col-span-full panel rounded-2xl border p-4 sm:p-5 text-center shadow-xl animate-pulse w-full min-w-0 ${gateInfo.status === "PENDING" ? 'border-[#F6C545]/50 bg-[#F6C545]/10' : 'border-[#EC5C2A]/50 bg-[#EC5C2A]/10'}`}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 w-full">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`shrink-0 ${gateInfo.status === "PENDING" ? 'text-[#D5C757]' : 'text-[#CE4A2D]'}`}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`shrink-0 ${gateInfo.status === "PENDING" ? 'text-[#F6C545]' : 'text-[#EC5C2A]'}`}>
                 {gateInfo.status === "PENDING" ? (
                   <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM12.5 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7Z" fill="currentColor"/>
                 ) : (
                   <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 22 12 22ZM13 16H11V14H13V16ZM13 12H11V7H13V12Z" fill="currentColor"/>
                 )}
               </svg>
-              <span className={`text-xs sm:text-sm font-bold uppercase tracking-wider text-center break-words whitespace-normal ${gateInfo.status === "PENDING" ? 'text-[#D5C757]' : 'text-[#CE4A2D]'}`}>
+              <span className={`text-xs sm:text-sm font-bold uppercase tracking-wider text-center break-words whitespace-normal ${gateInfo.status === "PENDING" ? 'text-[#F6C545]' : 'text-[#EC5C2A]'}`}>
                 {gateInfo.status === "PENDING" ? "ACCESS RESTRICTION: GATE PENDING" : gateInfo.status === "UNSET" ? "ACCESS RESTRICTION: GATE UNSET" : "ACCESS RESTRICTION ACTUATED: GATE CLOSED"}
               </span>
             </div>
-            <p className="text-[10px] sm:text-xs text-[#aaa391] mt-2 sm:mt-1 break-words whitespace-normal px-2">
+            <p className="text-[10px] sm:text-xs text-[#E1D9F9]/50 mt-2 sm:mt-1 break-words whitespace-normal px-2">
               {gateInfo.status === "PENDING"
                 ? `Sesi formulir presensi ini akan otomatis dibuka pada: ${new Date(gateInfo.openTime!).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} WIB.`
                 : gateInfo.status === "UNSET"
@@ -434,13 +434,13 @@ export default function AttendancePage() {
         <div className="grid gap-6 lg:gap-8 xl:grid-cols-[1fr_340px] col-span-full items-start w-full min-w-0">
           
           {activeTab === "h1" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
+            <article className="panel rounded-3xl border border-[#452ABC]/30 bg-[#0A0A0B]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#F6C545] to-transparent opacity-50"></div>
 
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+              <div className="border-b border-[#452ABC]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Konfirmasi Kehadiran Day</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Form konfirmasi kehadiran dan kondisi kesehatan</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F6C545] truncate">Form Konfirmasi Kehadiran Day</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#E1D9F9]/50 mt-0.5 break-words whitespace-normal">Form konfirmasi kehadiran dan kondisi kesehatan</p>
                 </div>
               </div>
 
@@ -449,18 +449,18 @@ export default function AttendancePage() {
               <form onSubmit={handleH1Submit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">NIM</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">NIM</span>
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-semibold">Nama Lengkap</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0A0A0B]/40 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Apakah besok akan hadir Day?</span>
-                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Apakah besok akan hadir Day?</span>
+                  <select value={statusH1} onChange={(e) => setStatusH1(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                     <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
                     <option value="hadir menyusul">Izin Menyusul</option>
                     <option value="izin meninggalkan">Izin Meninggalkan</option>
@@ -469,11 +469,11 @@ export default function AttendancePage() {
                 </label>
 
                 {statusH1 !== "hadir tepat waktu" && (
-                  <div className="bg-[#CE4A2D]/10 p-4 sm:p-5 rounded-xl border border-[#CE4A2D]/30 space-y-5 shadow-inner w-full min-w-0 animate-revealDown">
+                  <div className="bg-[#EC5C2A]/10 p-4 sm:p-5 rounded-xl border border-[#EC5C2A]/30 space-y-5 shadow-inner w-full min-w-0 animate-revealDown">
                     
                     <label className="block space-y-2">
-                      <span className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
-                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                      <span className="text-[10px] sm:text-xs text-[#EC5C2A] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#EC5C2A] shrink-0 mt-1 sm:mt-0" />
                         <span> Deskripsikan alasan (WAJIB)</span>
                       </span>
                       <textarea
@@ -481,18 +481,18 @@ export default function AttendancePage() {
                         onChange={(e) => setH1ReasonText(e.target.value)}
                         disabled={gateInfo.status !== "OPEN" || isLoading}
                         placeholder="Tuliskan alasan yang jelas dan spesifik"
-                        className="w-full rounded-xl border border-[#CE4A2D]/40 bg-black/20 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#CE4A2D] transition font-body resize-y"
+                        className="w-full rounded-xl border border-[#EC5C2A]/40 bg-black/20 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#EC5C2A] transition font-body resize-y"
                         rows={2}
                         required
                       />
                     </label>
 
                     <div className="space-y-1.5 pt-1">
-                      <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
-                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                      <label className="text-[10px] sm:text-xs text-[#EC5C2A] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#EC5C2A] shrink-0 mt-1 sm:mt-0" />
                         <span>Upload Bukti Keterangan / Surat Izin (WAJIB)</span>
                       </label>
-                      <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">
+                      <p className="text-[9px] sm:text-[10px] text-[#E1D9F9]/50 font-medium break-words whitespace-normal leading-relaxed">
                         Berkas bukti pendukung WAJIB dilampirkan. Maksimal 5MB.
                       </p>
                       
@@ -501,46 +501,46 @@ export default function AttendancePage() {
                         accept="image/*,.pdf" 
                         onChange={(e) => setEvidenceFileH1(e.target.files?.[0] || null)} 
                         disabled={gateInfo.status !== "OPEN" || isLoading} 
-                        className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#CE4A2D] file:text-white file:hover:bg-[#CE4A2D]/80 file:transition" 
+                        className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#E1D9F9]/50 cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#EC5C2A] file:text-white file:hover:bg-[#EC5C2A]/80 file:transition" 
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="border-t border-[#084D58]/30 pt-4 space-y-3">
+                <div className="border-t border-[#452ABC]/30 pt-4 space-y-3">
                   <div className="space-y-1">
-                    <h3 className="text-[11px] sm:text-xs font-bold text-[#D5C757] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
-                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#D5C757] shrink-0 mt-1 sm:mt-0.5" />
+                    <h3 className="text-[11px] sm:text-xs font-bold text-[#F6C545] uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#F6C545] shrink-0 mt-1 sm:mt-0.5" />
                       <span>Kondisi Kesehatan</span>
                     </h3>
-                    <p className="text-[9px] sm:text-[10px] text-[#aaa391] break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan saat ini</p>
+                    <p className="text-[9px] sm:text-[10px] text-[#E1D9F9]/50 break-words whitespace-normal leading-relaxed pl-3">Isi kondisi kesehatan saat ini</p>
                   </div>
 
                   <label className="block space-y-1">
-                    <span className="text-[10px] sm:text-[11px] text-[#D7DCD5] font-medium">Kondisi Saat Ini?</span>
-                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] cursor-pointer text-ellipsis overflow-hidden">
+                    <span className="text-[10px] sm:text-[11px] text-[#E1D9F9] font-medium">Kondisi Saat Ini?</span>
+                    <select value={condition} onChange={(e) => setCondition(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545] cursor-pointer text-ellipsis overflow-hidden">
                       <option value="Tidak sakit">Sehat</option>
                       <option value="Sedang sakit">Sedang Kurang Sehat</option>
                     </select>
                   </label>
 
                   {condition === "Sedang Kurang Sehat" && (
-                    <div className="bg-black/30 border border-[#084D58]/40 p-4 rounded-2xl space-y-4 animate-revealUp shadow-inner w-full min-w-0">
+                    <div className="bg-black/30 border border-[#452ABC]/40 p-4 rounded-2xl space-y-4 animate-revealUp shadow-inner w-full min-w-0">
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Diagnosa atau Riwayat Penyakit</span>
-                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Asma, Vertigo, Anemia, etc." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Diagnosa atau Riwayat Penyakit</span>
+                          <input type="text" value={illnessName} onChange={(e) => setIllnessName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Asma, Vertigo, Anemia, etc." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545]" required />
                         </label>
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Gejala yang dialami</span>
-                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Sesak napas, pusing, mual, etc." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                          <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Gejala yang dialami</span>
+                          <input type="text" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Sesak napas, pusing, mual, etc." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545]" required />
                         </label>
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2 w-full min-w-0">
                         <label className="block space-y-1 min-w-0">
-                          <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Apakah ada obat yang sedang dikonsumsi?</span>
-                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                          <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Apakah ada obat yang sedang dikonsumsi?</span>
+                          <select value={tookMedicine} onChange={(e) => setTookMedicine(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                             <option value="Belum">Belum / Tidak</option>
                             <option value="Sudah">Sudah / Ada</option>
                           </select>
@@ -548,8 +548,8 @@ export default function AttendancePage() {
                         
                         {tookMedicine === "Sudah" && (
                           <label className="block space-y-1 animate-revealUp min-w-0">
-                            <span className="text-[9px] sm:text-[10px] text-[#D5C757] uppercase font-bold">Nama Obat yang Dikonsumsi:</span>
-                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                            <span className="text-[9px] sm:text-[10px] text-[#F6C545] uppercase font-bold">Nama Obat yang Dikonsumsi:</span>
+                            <input type="text" value={medicineName} onChange={(e) => setMedicineName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Ventolin inhaler, Antasida..." className="w-full min-w-0 rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545]" required />
                           </label>
                         )}
                       </div>
@@ -565,12 +565,12 @@ export default function AttendancePage() {
           )}
 
           {activeTab === "dday_awal" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+            <article className="panel rounded-3xl border border-[#452ABC]/30 bg-[#0A0A0B]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#F6C545] to-transparent opacity-50"></div>
+              <div className="border-b border-[#452ABC]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Presensi Check-In</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Lakukan presensi sesuai arahan</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F6C545] truncate">Form Presensi Check-In</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#E1D9F9]/50 mt-0.5 break-words whitespace-normal">Lakukan presensi sesuai arahan</p>
                 </div>
               </div>
 
@@ -579,18 +579,18 @@ export default function AttendancePage() {
               <form onSubmit={handleDDayAwalSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">NIM (Otomatis)</span>
-                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] font-mono font-bold opacity-40 outline-none select-none" />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">NIM (Otomatis)</span>
+                    <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] font-mono font-bold opacity-40 outline-none select-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-semibold">Nama Lengkap</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0A0A0B]/50 px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] transition" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Kehadiran</span>
-                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] cursor-pointer font-medium text-ellipsis overflow-hidden">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Status Kehadiran</span>
+                  <select value={statusDDayAwal} onChange={(e) => setStatusDDayAwal(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] cursor-pointer font-medium text-ellipsis overflow-hidden">
                     <option value="hadir tepat waktu">Hadir Tepat Waktu</option>
                     <option value="izin menyusul">Izin Menyusul</option>
                     <option value="izin meninggalkan">Izin Meninggalkan</option>
@@ -599,18 +599,18 @@ export default function AttendancePage() {
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Catatan / Keterangan Bukti</span>
-                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-[#F2EDEC] outline-none focus:border-[#D5C757] transition font-body resize-y" rows={3} />
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Catatan / Keterangan Bukti</span>
+                  <textarea value={evidenceText} onChange={(e) => setEvidenceText(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Isi '-' jika hadir normal. Sebutkan alasan jika terlambat/izin..." className="w-full rounded-xl border border-white/15 bg-[#0A0A0B]/50 px-3 py-2 text-[11px] sm:text-xs text-[#E1D9F9] outline-none focus:border-[#F6C545] transition font-body resize-y" rows={3} />
                 </label>
 
-                <div className="bg-black/20 p-4 rounded-xl border border-[#CE4A2D]/30 space-y-1.5 shadow-inner w-full min-w-0">
-                  <label className="text-[10px] sm:text-xs text-[#CE4A2D] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#CE4A2D] shrink-0 mt-1 sm:mt-0" />
+                <div className="bg-black/20 p-4 rounded-xl border border-[#EC5C2A]/30 space-y-1.5 shadow-inner w-full min-w-0">
+                  <label className="text-[10px] sm:text-xs text-[#EC5C2A] font-bold uppercase tracking-wider flex items-start sm:items-center gap-1.5 break-words whitespace-normal leading-snug">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#EC5C2A] shrink-0 mt-1 sm:mt-0" />
                     <span> Bukti Dokumentasi (WAJIB)</span>
                   </label>
-                  <p className="text-[9px] sm:text-[10px] text-[#aaa391] font-medium break-words whitespace-normal leading-relaxed">Form dokumentasi diri dan kegiatan di lokasi WAJIB dilampirkan. Maksimal 5MB.</p>
+                  <p className="text-[9px] sm:text-[10px] text-[#E1D9F9]/50 font-medium break-words whitespace-normal leading-relaxed">Form dokumentasi diri dan kegiatan di lokasi WAJIB dilampirkan. Maksimal 5MB.</p>
                   
-                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#aaa391] cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#084D58] file:text-[#D5C757] file:hover:bg-[#084D58]/80 file:transition" />
+                  <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[9px] sm:text-[10px] text-[#E1D9F9]/50 cursor-pointer mt-2 block file:mr-2 sm:file:mr-4 file:py-1.5 file:px-2 sm:file:px-3 file:rounded-lg file:border-0 file:text-[9px] sm:file:text-[10px] file:font-bold file:bg-[#452ABC] file:text-[#F6C545] file:hover:bg-[#452ABC]/80 file:transition" />
                 </div>
 
                 <button type="submit" disabled={gateInfo.status !== "OPEN" || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold shadow-lg tracking-wider disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer break-words whitespace-normal">
@@ -621,12 +621,12 @@ export default function AttendancePage() {
           )}
 
           {activeTab === "dday_akhir" && (
-            <article className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D5C757] to-transparent opacity-50"></div>
-              <div className="border-b border-[#084D58]/30 pb-3 flex items-center justify-between gap-3">
+            <article className="panel rounded-3xl border border-[#452ABC]/30 bg-[#0A0A0B]/60 p-4 sm:p-7 space-y-5 shadow-2xl backdrop-blur-sm w-full min-w-0 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#F6C545] to-transparent opacity-50"></div>
+              <div className="border-b border-[#452ABC]/30 pb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#D5C757] truncate">Form Presensi Check-Out & Feedback</h2>
-                  <p className="text-[10px] sm:text-[11px] text-[#aaa391] mt-0.5 break-words whitespace-normal">Presensi akhir dan pengisian feedback day.</p>
+                  <h2 className="font-heading text-xl sm:text-2xl tracking-wide text-[#F6C545] truncate">Form Presensi Check-Out & Feedback</h2>
+                  <p className="text-[10px] sm:text-[11px] text-[#E1D9F9]/50 mt-0.5 break-words whitespace-normal">Presensi akhir dan pengisian feedback day.</p>
                 </div>
               </div>
 
@@ -635,29 +635,29 @@ export default function AttendancePage() {
               <form onSubmit={handleDDayAkhirSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2 w-full min-w-0">
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">NIM (Otomatis)</span>
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">NIM (Otomatis)</span>
                     <input type="text" value={studentNIM} disabled className="w-full min-w-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] sm:text-xs text-white font-mono font-bold opacity-40 outline-none" />
                   </label>
                   <label className="block space-y-1 min-w-0">
-                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#D5C757] font-semibold">Nama Lengkap</span>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757]" required />
+                    <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#F6C545] font-semibold">Nama Lengkap</span>
+                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="e.g., Zhou Yiran" className="w-full min-w-0 rounded-xl border border-white/15 bg-[#0A0A0B]/50 px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545]" required />
                   </label>
                 </div>
 
                 <label className="block space-y-1">
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#aaa391] font-semibold">Status Konfirmasi Checkout</span>
-                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0F282F] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[#E1D9F9]/50 font-semibold">Status Konfirmasi Checkout</span>
+                  <select value={statusDDayAkhir} onChange={(e) => setStatusDDayAkhir(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} className="w-full rounded-xl border border-white/15 bg-[#0A0A0B] px-3 py-2.5 text-[11px] sm:text-xs text-white outline-none cursor-pointer text-ellipsis overflow-hidden">
                     <option value="hadir">Mengikuti Seluruh Rangkaian Day</option>
                     <option value="tidak hadir">Izin Meninggalkan</option>
                   </select>
                 </label>
 
                 <label className="block space-y-1">
-                  <span className="text-[11px] sm:text-xs text-[#D5C757] font-bold uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
+                  <span className="text-[11px] sm:text-xs text-[#F6C545] font-bold uppercase tracking-wider flex items-start gap-1.5 break-words whitespace-normal">
                     <span className="mt-0.5">💬</span> 
                     <span>Lembar Feedback, Evaluasi, & Insight Hari Ini</span>
                   </span>
-                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Tuliskan kritik, saran, evaluasi, dan feedback untuk day ini" className="w-full rounded-xl border border-white/15 bg-[#0F282F]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#D5C757] transition font-body resize-y" rows={4} required />
+                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} disabled={gateInfo.status !== "OPEN" || isLoading} placeholder="Tuliskan kritik, saran, evaluasi, dan feedback untuk day ini" className="w-full rounded-xl border border-white/15 bg-[#0A0A0B]/50 px-3 py-2 text-[11px] sm:text-xs text-white outline-none focus:border-[#F6C545] transition font-body resize-y" rows={4} required />
                 </label>
 
                 <button type="submit" disabled={gateInfo.status !== "OPEN" || isLoading} className="cta-btn w-full sm:w-auto px-6 py-3.5 sm:py-3 text-[11px] sm:text-xs uppercase font-bold tracking-wider cursor-pointer break-words whitespace-normal disabled:opacity-50">
@@ -667,39 +667,39 @@ export default function AttendancePage() {
             </article>
           )}
 
-          <aside className="panel rounded-3xl border border-[#084D58]/30 bg-[#0F282F]/60 p-5 space-y-4 shadow-2xl backdrop-blur-sm self-start w-full xl:w-80 min-w-0">
-            <div className="border-b border-[#084D58]/30 pb-2">
-              <h3 className="font-heading text-lg sm:text-xl text-[#D5C757] uppercase tracking-wider break-words whitespace-normal leading-tight">Live Metrics</h3>
-              <p className="text-[8px] sm:text-[9px] font-mono text-[#aaa391] uppercase mt-1 break-words whitespace-normal">DAY: {selectedDay}_{activeTab}</p>
+          <aside className="panel rounded-3xl border border-[#452ABC]/30 bg-[#0A0A0B]/60 p-5 space-y-4 shadow-2xl backdrop-blur-sm self-start w-full xl:w-80 min-w-0">
+            <div className="border-b border-[#452ABC]/30 pb-2">
+              <h3 className="font-heading text-lg sm:text-xl text-[#F6C545] uppercase tracking-wider break-words whitespace-normal leading-tight">Live Metrics</h3>
+              <p className="text-[8px] sm:text-[9px] font-mono text-[#E1D9F9]/50 uppercase mt-1 break-words whitespace-normal">DAY: {selectedDay}_{activeTab}</p>
             </div>
             
-            <div className="text-[11px] sm:text-xs space-y-3 text-[#D7DCD5]">
+            <div className="text-[11px] sm:text-xs space-y-3 text-[#E1D9F9]">
               {activeTab === "dday_awal" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.hadir}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.meninggalkan}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAwalMetrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredDDayAwalMetrics.hadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Menyusul:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredDDayAwalMetrics.menyusul}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredDDayAwalMetrics.meninggalkan}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredDDayAwalMetrics.tidakHadir}</span></div>
                 </>
               )}
               {activeTab === "dday_akhir" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Presensi Akhir yang Tercatat:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAkhirMetrics.hadir}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Melakukan Presensi Akhir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredDDayAkhirMetrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Presensi Akhir yang Tercatat:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredDDayAkhirMetrics.hadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Melakukan Presensi Akhir:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredDDayAkhirMetrics.tidakHadir}</span></div>
                 </>
               )}
               {activeTab === "h1" && (
                 <>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Tepat Waktu:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Menyusul:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.menyusul}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-teal-400 font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Hadir Tepat Waktu:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredH1Metrics.tepatWaktu}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Menyusul:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredH1Metrics.menyusul}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Izin Meninggalkan:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredH1Metrics.izin}</span></div>
+                  <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5 gap-2"><span className="truncate">Tidak Hadir:</span><span className="text-[#F6C545] font-bold font-mono shrink-0">{filteredH1Metrics.tidakHadir}</span></div>
                 </>
               )}
               
-              <div className="pt-3 text-[9px] sm:text-[10px] text-[#aaa391] border-t border-[#084D58]/40 flex justify-between items-center gap-2">
+              <div className="pt-3 text-[9px] sm:text-[10px] text-[#E1D9F9]/50 border-t border-[#452ABC]/40 flex justify-between items-center gap-2">
                 <span className="truncate">Jumlah Angkatan:</span>
-                <span className="font-mono font-bold text-white bg-[#084D58]/50 px-2 py-0.5 rounded border border-[#084D58] shrink-0">{expectedParticipants} Org</span>
+                <span className="font-mono font-bold text-white bg-[#452ABC]/50 px-2 py-0.5 rounded border border-[#452ABC] shrink-0">{expectedParticipants} Org</span>
               </div>
             </div>
           </aside>
