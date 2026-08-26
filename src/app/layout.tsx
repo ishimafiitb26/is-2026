@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AppFrame from "../components/AppFrame";
 import { I18nProvider } from "../components/I18nProvider";
 import { AuthProvider } from "../components/AuthProvider";
-import Footer from "../components/Footer"; // TAMBAHAN 1: Import Footer
+import Footer from "../components/Footer";
 import { Bebas_Neue, Source_Sans_3 } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -25,11 +25,8 @@ export const metadata: Metadata = {
 
 const navItems = [
   { href: "/", label: "Home" },
-  //{ href: "/journey-map", label: "Journey Map" }, //hide
   { href: "/attendance", label: "Attendance" },
   { href: "/handbook", label: "Explore Area" }, 
-  //{ href: "/reflection-board", label: "Reflection Board" }, //hide
-  //{ href: "/help-center", label: "Help Center" }, //hide
   { href: "/portal", label: "Profile Settings" }, 
   { href: "/admin", label: "Admin" },
 ];
@@ -45,7 +42,6 @@ export default function RootLayout({
       className={`${headingFont.variable} ${bodyFont.variable} h-full antialiased`}
     >
       <head>
-        {/* Menyembunyikan seluruh widget Google Translate secara total dari layar */}
         <style>{`
           #google_translate_element, .goog-te-banner-frame, .skiptranslate, #goog-gt-tt {
             display: none !important;
@@ -65,18 +61,15 @@ export default function RootLayout({
       <body className="relative isolate min-h-full flex flex-col text-foreground">
         <AuthProvider>
           <I18nProvider>
-            {/* AppFrame dibungkus dengan flex-grow agar mendesak Footer ke paling bawah */}
             <div className="flex flex-col min-h-screen">
               <div className="flex-grow">
                 <AppFrame navItems={navItems}>{children}</AppFrame>
               </div>
-              {/* TAMBAHAN 2: Komponen Footer menempel di akhir */}
               <Footer />
             </div>
           </I18nProvider>
         </AuthProvider>
 
-        {/* Node penampung Google Translate yang sudah disembunyikan CSS */}
         <div id="google_translate_element" />
         
         <Script 
