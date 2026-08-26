@@ -18,9 +18,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // LOGIC PINTAR: Cek apakah yang diketik mengandung karakter '@'
-      // - Kalau ADA '@', berarti kamu (Admin) lagi login pakai email gmail asli.
-      // - Kalau NGGAK ADA, berarti itu Maba yang lagi login pakai NIM (baru kita tembak pake dummy domain).
       const finalEmail = nim.includes("@") 
         ? nim.trim() 
         : `${nim.trim()}@mahasiswa.itb.ac.id`;
@@ -37,16 +34,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B] px-4 relative overflow-hidden">
       
-      {/* Efek kosmik (Cahaya blur) di background */}
       <div className="absolute inset-0 pointer-events-none z-0">
-         <div className="absolute top-[-10%] left-[-10%] h-96 w-96 rounded-full bg-[#452ABC]/30 blur-[100px]" />
+         <div className="absolute top-[-10%] left-[-10%] h-96 w-96 rounded-full bg-[#452ABC]/40 blur-[100px]" />
          <div className="absolute bottom-[-10%] right-[-10%] h-96 w-96 rounded-full bg-[#EC5C2A]/15 blur-[100px]" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Panel Login */}
-        <div className="bg-[#452ABC]/15 backdrop-blur-md border border-[#E1D9F9]/10 rounded-2xl p-8 shadow-2xl">
-          <h1 className="font-heading text-4xl text-[#F6C545] mb-2 tracking-wider">
+        <div className="bg-[#452ABC]/30 backdrop-blur-md border border-[#E1D9F9]/10 rounded-2xl p-8 shadow-2xl">
+          <h1 className="font-heading text-4xl text-[#E1D9F9] mb-2 tracking-wider">
             INTELLEKTUELLE SCHULE 2026
           </h1>
           <p className="text-[#E1D9F9]/70 mb-8 text-sm">
@@ -87,7 +82,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 mt-4 bg-[#F6C545] hover:bg-[#EC5C2A] disabled:bg-[#F6C545]/50 text-[#0A0A0B] font-bold rounded-xl transition shadow-[0_0_15px_rgba(246,197,69,0.25)]"
+              className="w-full py-3 mt-4 bg-[#F6C545] hover:bg-[#c49a37] disabled:bg-[#F6C545]/50 text-[#0A0A0B] font-bold rounded-xl transition shadow-[0_0_15px_rgba(246,197,69,0.2)]"
             >
               {loading ? "Authenticating..." : "Log In"}
             </button>
